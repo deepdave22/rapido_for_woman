@@ -1,0 +1,22 @@
+{
+  "name": "@saheli/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Typed HTTP client for the Saheli API, shared by the mobile apps and admin dashboard.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@saheli/domain": "0.1.0"
+  },
+  "devDependencies": {
+    "vitest": "3.2.7"
+  }
+}

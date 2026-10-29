@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Patch, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Patch, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsEmail, IsIn, IsOptional, IsString, Length, Matches } from 'class-validator';
 import { eq } from 'drizzle-orm';
@@ -6,6 +6,7 @@ import { AuditService } from '../audit/audit.service';
 import { clientInfo } from '../auth/auth.controller';
 import { AuthenticatedRequest, AuthUser, CurrentUser } from '../auth/auth.decorators';
 import { AppError } from '../common/errors';
+import { Env } from '../config/env';
 import { DB, Database } from '../database/database.module';
 import { driverProfiles, passengerProfiles, userRoles, users } from '../database/schema';
 
@@ -27,6 +28,12 @@ export class UpdateMeDto {
   preferredLanguage?: string;
 }
 
+export class AcceptTermsDto {
+  @IsString()
+  @Length(1, 40)
+  termsVersion: string;
+}
+
 export class MeResponse {
   id: string;
   phone: string;
@@ -34,7 +41,8 @@ export class MeResponse {
   email: string | null;
   preferredLanguage: string;
   roles: string[];
-  passenger: { eligibilityStatus: string } | null;
+  passenger: { eligibilityStatus: string; termsAccepted: boolean } | null;
+  currentTermsVersion: string;
   driver: { status: string } | null;
 }
 
@@ -45,6 +53,7 @@ export class UsersController {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly audit: AuditService,
+    private readonly env: Env,
   ) {}
 
   @Get()
@@ -56,7 +65,10 @@ export class UsersController {
       .from(userRoles)
       .where(eq(userRoles.userId, user.userId));
     const [passenger] = await this.db
-      .select({ eligibilityStatus: passengerProfiles.eligibilityStatus })
+      .select({
+        eligibilityStatus: passengerProfiles.eligibilityStatus,
+        termsVersion: passengerProfiles.termsVersionAccepted,
+      })
       .from(passengerProfiles)
       .where(eq(passengerProfiles.userId, user.userId));
     const [driver] = await this.db
@@ -70,8 +82,14 @@ export class UsersController {
       email: row.email,
       preferredLanguage: row.preferredLanguage,
       roles: roles.map((r) => r.role),
-      passenger: passenger ?? null,
+      passenger: passenger
+        ? {
+            eligibilityStatus: passenger.eligibilityStatus,
+            termsAccepted: passenger.termsVersion === this.env.TERMS_VERSION,
+          }
+        : null,
       driver: driver ?? null,
+      currentTermsVersion: this.env.TERMS_VERSION,
     };
   }
 
@@ -96,6 +114,43 @@ export class UsersController {
         metadata: { fields: Object.keys(changes) },
       });
     }
+    return this.me(user);
+  }
+
+  /** Records acceptance of the current terms and privacy notice (required before booking). */
+  @Post('terms')
+  @HttpCode(200)
+  async acceptTerms(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: AcceptTermsDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<MeResponse> {
+    if (dto.termsVersion !== this.env.TERMS_VERSION) {
+      throw new AppError(409, 'TERMS_VERSION_OUTDATED', 'Please review the latest terms', {
+        currentTermsVersion: this.env.TERMS_VERSION,
+      });
+    }
+    const now = new Date();
+    const updated = await this.db
+      .update(passengerProfiles)
+      .set({
+        termsVersionAccepted: dto.termsVersion,
+        termsAcceptedAt: now,
+        privacyVersionAccepted: dto.termsVersion,
+      })
+      .where(eq(passengerProfiles.userId, user.userId))
+      .returning({ userId: passengerProfiles.userId });
+    if (!updated.length)
+      throw new AppError(403, 'NOT_A_PASSENGER', 'Only passengers accept rider terms');
+    await this.audit.record({
+      actorType: 'USER',
+      actorId: user.userId,
+      action: 'user.terms_accepted',
+      entityType: 'user',
+      entityId: user.userId,
+      ...clientInfo(req),
+      metadata: { termsVersion: dto.termsVersion },
+    });
     return this.me(user);
   }
 }

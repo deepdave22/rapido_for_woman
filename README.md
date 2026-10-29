@@ -3,23 +3,28 @@
 A women-focused ride-hailing platform for India: women passengers booking verified women
 drivers, with safety built into the ride lifecycle. _"Saheli Rides" is a working name._
 
-> **Status: foundation stage, not usable for rides yet.** The API has phone-OTP sign-in,
-> sessions and the full database schema. Booking, dispatch, payments, safety workflows and
-> the apps are in progress. See [docs/TASKS.md](docs/TASKS.md) and
-> [docs/LAUNCH_BLOCKERS.md](docs/LAUNCH_BLOCKERS.md).
+> **Status: pre-pilot.** The full ride journey works end to end through the API:
+> driver onboarding, quotes, booking, dispatch, PIN-verified pickup, completion, cancellation
+> and live updates. Both mobile apps are built but not yet device-tested. Payments, safety
+> workflows and the admin dashboard are in progress. See [docs/TASKS.md](docs/TASKS.md)
+> and [docs/LAUNCH_BLOCKERS.md](docs/LAUNCH_BLOCKERS.md).
 
 ## Repository layout
 
 ```
 apps/
-  api/            NestJS API (REST + soon WebSocket), Drizzle ORM, migrations in drizzle/
+  api/            NestJS API (REST + Socket.IO), Drizzle ORM, migrations in drizzle/
+  passenger/      Passenger app (Expo SDK 54 / React Native)
+  driver/         Driver app (Expo SDK 54 / React Native)
 packages/
-  domain/         Pure business rules: fares, ride lifecycle, money, phone numbers
+  domain/         Pure business rules: fares, dispatch ranking, ride lifecycle, money
+  api-client/     Typed HTTP client shared by the apps
+  mobile-core/    Shared React Native theme, components, sign-in, realtime
 infra/            docker compose for local Postgres+PostGIS and Redis
 docs/             Architecture, decisions, task checklist, launch blockers
 ```
 
-Planned: `apps/passenger`, `apps/driver` (Expo) and `apps/admin` (Next.js).
+Planned: `apps/admin` (Next.js).
 
 ## Prerequisites
 
@@ -32,12 +37,23 @@ Planned: `apps/passenger`, `apps/driver` (Expo) and `apps/admin` (Next.js).
 npm install
 npm run infra:up                         # Postgres on localhost:55432, Redis on 6379
 cp apps/api/.env.example apps/api/.env   # then replace both secrets (command is in the file)
-npm run build -w @saheli/domain
+npm run build -w @saheli/domain -w @saheli/api-client
 npm run db:migrate
+npm run db:seed                          # synthetic pilot zone + prices (dev only)
 npm run dev:api                          # http://localhost:3000, docs at /docs
 ```
 
 With `OTP_PROVIDER=console`, login codes are printed to the API log. No SMS is sent.
+
+## Mobile apps
+
+```bash
+cp apps/passenger/.env.example apps/passenger/.env   # set EXPO_PUBLIC_API_URL
+cd apps/passenger && npx expo run:android            # development build (needs Android SDK)
+```
+
+The driver app works the same way from `apps/driver`. To approve a test driver before the
+admin dashboard exists, see the `approvedDriver` fixture in `apps/api/test/helpers.ts`.
 
 ## Tests
 

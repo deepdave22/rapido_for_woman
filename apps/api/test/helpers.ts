@@ -1,13 +1,23 @@
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { normalizeIndianMobile } from '@saheli/domain';
 import { Test } from '@nestjs/testing';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
 import { InMemoryOtpSender, OTP_SENDER } from '../src/auth/otp/otp-sender';
 import { DB, Database } from '../src/database/database.module';
+import {
+  driverDocuments,
+  driverProfiles,
+  driverVerifications,
+  users,
+  vehicles,
+} from '../src/database/schema';
+import { seedReferenceData } from '../src/database/seed';
+import { REQUIRED_CHECKS, requiredDocuments } from '../src/drivers/driver-eligibility.service';
+import { TEST_ENV } from './test-env';
 
 export interface TestContext {
   app: NestExpressApplication;
@@ -82,4 +92,147 @@ export async function pgError(promise: Promise<unknown>): Promise<string> {
     return err.cause?.message ?? err.message;
   }
   throw new Error('Expected the query to fail');
+}
+
+export const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
+
+/** Central Bengaluru points inside the synthetic pilot zone. */
+export const PLACES = {
+  mgRoad: { lat: 12.9756, lng: 77.6066, address: 'MG Road Metro, Bengaluru' },
+  koramangala: { lat: 12.9352, lng: 77.6245, address: 'Koramangala 5th Block, Bengaluru' },
+  mumbai: { lat: 19.076, lng: 72.8777, address: 'Mumbai (outside the pilot zone)' },
+};
+
+export async function seed(ctx: TestContext): Promise<void> {
+  await seedReferenceData(ctx.db);
+}
+
+/** A signed-in passenger who has accepted the current terms. */
+export async function readyPassenger(
+  ctx: TestContext,
+  n: number,
+  fullName = 'Asha Kumar',
+): Promise<LoggedIn> {
+  const p = await login(ctx, testPhone(n));
+  await ctx.http.patch('/v1/me').set(bearer(p.accessToken)).send({ fullName }).expect(200);
+  await ctx.http
+    .post('/v1/me/terms')
+    .set(bearer(p.accessToken))
+    .send({ termsVersion: TEST_ENV.TERMS_VERSION })
+    .expect(200);
+  return p;
+}
+
+/**
+ * A driver who has passed every check (written straight to the database, as
+ * an operations reviewer would approve them), online at the given point.
+ */
+export async function approvedDriver(
+  ctx: TestContext,
+  n: number,
+  opts: {
+    category?: 'BIKE' | 'AUTO' | 'CAB';
+    at?: { lat: number; lng: number };
+    online?: boolean;
+  } = {},
+): Promise<LoggedIn & { vehicleId: string }> {
+  const d = await login(ctx, testPhone(n), 'DRIVER');
+  const category = opts.category ?? 'BIKE';
+  await ctx.db
+    .update(users)
+    .set({ fullName: `Driver ${n}` })
+    .where(eq(users.id, d.userId));
+  const [vehicle] = await ctx.db
+    .insert(vehicles)
+    .values({
+      driverId: d.userId,
+      categoryCode: category,
+      registrationNumber: `KA01TS${String(n).padStart(4, '0')}`,
+      make: 'TestMake',
+      model: 'TestModel',
+      colour: 'White',
+      status: 'ACTIVE',
+    })
+    .returning({ id: vehicles.id });
+  for (const type of requiredDocuments(category)) {
+    await ctx.db.insert(driverDocuments).values({
+      driverId: d.userId,
+      type,
+      storageKey: `test/${d.userId}/${type}`,
+      mimeType: 'image/png',
+      sizeBytes: 100,
+      sha256: 'test',
+      status: 'APPROVED',
+    });
+  }
+  for (const check of REQUIRED_CHECKS) {
+    await ctx.db
+      .insert(driverVerifications)
+      .values({ driverId: d.userId, check, status: 'PASSED' });
+  }
+  await ctx.db
+    .update(driverProfiles)
+    .set({ status: 'APPROVED', approvedAt: new Date() })
+    .where(eq(driverProfiles.userId, d.userId));
+  if (opts.online !== false) {
+    await ctx.http
+      .post('/v1/driver/availability')
+      .set(bearer(d.accessToken))
+      .send({ online: true })
+      .expect(200);
+    await placeDriver(ctx, d.userId, opts.at ?? PLACES.mgRoad);
+  }
+  return { ...d, vehicleId: vehicle!.id };
+}
+
+/** Sets a driver's current position directly (bypasses update thinning). */
+export async function placeDriver(
+  ctx: TestContext,
+  driverId: string,
+  at: { lat: number; lng: number },
+) {
+  await ctx.db.execute(sql`
+    INSERT INTO driver_locations (driver_id, location, accuracy_m, recorded_at)
+    VALUES (${driverId}, ST_SetSRID(ST_MakePoint(${at.lng}, ${at.lat}), 4326)::geography, 10, now())
+    ON CONFLICT (driver_id) DO UPDATE SET location = EXCLUDED.location, recorded_at = now()`);
+}
+
+let keyCounter = 0;
+export const idemKey = () => `test-key-${Date.now()}-${++keyCounter}`;
+
+/** Quotes MG Road → Koramangala and books the given category. */
+export async function bookRide(
+  ctx: TestContext,
+  passenger: LoggedIn,
+  category: 'BIKE' | 'AUTO' | 'CAB' = 'BIKE',
+  paymentMethod: 'CASH' | 'ONLINE' = 'CASH',
+) {
+  const quote = await ctx.http
+    .post('/v1/rides/quotes')
+    .set(bearer(passenger.accessToken))
+    .send({ pickup: PLACES.mgRoad, dropoff: PLACES.koramangala })
+    .expect(200);
+  const option = quote.body.options.find(
+    (o: { categoryCode: string }) => o.categoryCode === category,
+  );
+  const res = await ctx.http
+    .post('/v1/rides')
+    .set(bearer(passenger.accessToken))
+    .set('Idempotency-Key', idemKey())
+    .send({ quoteId: option.quoteId, paymentMethod })
+    .expect(201);
+  return res.body as {
+    id: string;
+    status: string;
+    pickupPin: string | null;
+    quotedTotalPaise: number;
+  };
+}
+
+export async function currentOffer(ctx: TestContext, driver: LoggedIn) {
+  const res = await ctx.http
+    .get('/v1/driver/offers/current')
+    .set(bearer(driver.accessToken))
+    .expect(200);
+  return res.body.offer as { id: string; rideId: string; estimatedEarningPaise: number } | null;
 }

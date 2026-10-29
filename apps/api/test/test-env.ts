@@ -14,4 +14,8 @@ export const TEST_ENV: Record<string, string> = {
   OTP_PROVIDER: 'memory',
   OTP_RESEND_COOLDOWN_SECONDS: '0',
   OTP_MAX_SENDS_PER_PHONE_PER_HOUR: '5',
+  // Tests drive the dispatch sweeper explicitly.
+  DISPATCH_SWEEP_INTERVAL_MS: '0',
+  STORAGE_LOCAL_DIR: '.storage-test',
+  TERMS_VERSION: 'test-terms-1',
 };

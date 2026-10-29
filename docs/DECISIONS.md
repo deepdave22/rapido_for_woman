@@ -80,3 +80,37 @@ same output. `scripts/dev.mjs` provides the watch loop.
 
 **Why:** Windows (Hyper-V) reserves port ranges that include 5432 on the primary dev
 machine. CI uses 5432 inside GitHub's runner.
+
+## ADR-012 Mobile: Expo SDK 54, shared `mobile-core`, separate mobile audit
+
+**Decision:** Both apps use Expo SDK 54 (React Native 0.81, React 19.1, expo-router 6), the
+latest patch of an SDK line we know well (ADR-009). Native module versions are chosen by
+`expo install`. Shared UI, auth and realtime code lives in `packages/mobile-core`, shipped
+as TypeScript source and compiled by Metro.
+**Consequences:**
+
+- Expo Go from the stores runs only the newest SDK, so device testing uses a development
+  build (`npx expo run:android`) or EAS Build.
+- `mobile-core` pins its peer dependencies exactly. A `"*"` peer range once made npm hoist
+  React Native 0.88 beside 0.81 and broke the Metro bundle.
+- Production audit findings in the Expo 54 tree (decode-uri-component/query-string in
+  expo-router deep-link parsing, image-size/deepmerge at build time) have no fix inside
+  SDK 54. CI therefore audits server packages as a blocking check and mobile packages as a
+  reported, non-blocking check. Revisit at the next SDK upgrade, which should happen before
+  store submission.
+
+## ADR-013 Dispatch state in Postgres, swept on an interval
+
+**Decision:** Offers, reservations and timeouts live in Postgres. One offer per ride at a
+time. The offered driver is reserved via `driver_availability.active_ride_id` (an atomic
+conditional update). Expired offers are swept every 2 s with `FOR UPDATE SKIP LOCKED`.
+**Why:** It is correct across restarts and multiple API instances without adding a queue,
+and every outcome is queryable for operations. A Redis/BullMQ delay queue can replace the
+sweep if offer timing needs to be tighter than about 2 s.
+
+## ADR-014 Upfront pricing; final fare = quote + waiting charge
+
+**Decision:** The passenger pays the quoted fare for the quoted route, plus waiting time
+beyond the free window. Distance actually driven is not re-metered.
+**Why:** Predictable for passengers and resistant to detours. Route-deviation alerts and
+re-pricing for passenger-requested stop or destination changes are separate features.

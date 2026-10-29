@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
@@ -7,10 +7,15 @@ import type { IncomingMessage } from 'node:http';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { AllExceptionsFilter } from './common/errors';
+import { IdempotencyInterceptor } from './common/idempotency/idempotency';
 import { ConfigModule } from './config/config.module';
 import { Env } from './config/env';
 import { DatabaseModule } from './database/database.module';
+import { DriversModule } from './drivers/drivers.module';
+import { IntegrationsModule } from './integrations/integrations.module';
+import { RidesModule } from './rides/rides.module';
 import { HealthController } from './health/health.controller';
+import { PlacesController } from './places/places.controller';
 import { RedisModule } from './redis/redis.module';
 import { UsersController } from './users/users.controller';
 
@@ -64,11 +69,15 @@ const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     RedisModule,
     AuditModule,
     AuthModule,
+    IntegrationsModule,
+    DriversModule,
+    RidesModule,
   ],
-  controllers: [HealthController, UsersController],
+  controllers: [HealthController, UsersController, PlacesController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
   ],
 })
 export class AppModule {}

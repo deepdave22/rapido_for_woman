@@ -42,11 +42,17 @@ professional advice before a pilot.
 
 ## Known limitations (current code)
 
-- Only auth, sessions, profile and health endpoints exist. The schema covers all
-  features, but services for rides, dispatch, pricing, payments, safety and admin are not built.
-- The HTTP throttler keeps its counters in memory per instance and is disabled in
+- **Mobile apps are not yet tested on devices.** They typecheck and Metro bundles them
+  for Android in CI. Running them needs a development build (ADR-012).
+- Driver location is shared only while the app is in the foreground. Background location
+  (expo-task-manager plus Play/App Store background-location review) is required before pilot.
+- Map tiles on Android need `GOOGLE_MAPS_ANDROID_KEY`. Real routing and place search need
+  `MAPS_PROVIDER=google`. The Google adapters are written to the documented APIs but have
+  not been called with a live key.
+- The S3 storage adapter is not written. `STORAGE_PROVIDER=s3` fails at startup by design.
+- Payments are recorded as `PENDING` at completion. Collection, the ledger and payouts are Phase 4.
+- The HTTP throttler keeps counters in memory per instance and is disabled in
   `NODE_ENV=test`. The OTP limits stored in the database still apply everywhere.
-- Account deletion and data export are not implemented. The `deleted_at` column exists.
-- Staff authentication (password + TOTP) is not implemented. The tables exist.
-- No load or performance testing yet.
-- The mobile apps and admin dashboard don't exist yet.
+- Account deletion and data export are not implemented.
+- Staff authentication and the admin dashboard are Phase 5. Driver approval is currently a
+  direct database action (used by tests).

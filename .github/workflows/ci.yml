@@ -43,12 +43,14 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - name: Production dependency audit
-        run: npm audit --omit=dev --audit-level=high
+      - name: Production dependency audit (server packages, blocking)
+        run: npm audit --omit=dev --audit-level=high -w @saheli/api -w @saheli/domain -w @saheli/api-client
+      - name: Mobile dependency audit (reported, see ADR-012)
+        run: npm audit --omit=dev -w @saheli/passenger -w @saheli/driver || true
       - run: npm run format:check
       - run: npm run lint
-      - name: Build shared domain package
-        run: npm run build -w @saheli/domain
+      - name: Build shared packages
+        run: npm run build -w @saheli/domain -w @saheli/api-client
       - run: npm run typecheck
       - name: Check migrations match the schema
         working-directory: apps/api
@@ -65,3 +67,26 @@ jobs:
       - name: Integration tests (Postgres + PostGIS + Redis)
         run: npm run test:int
       - run: npm run build
+
+  mobile-bundle:
+    # Proves both apps compile to a release JS bundle (Metro + Hermes), without a device.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w @saheli/domain -w @saheli/api-client
+      - name: Bundle passenger app (Android)
+        working-directory: apps/passenger
+        run: npx expo export --platform android --output-dir /tmp/passenger
+        env:
+          EXPO_PUBLIC_API_URL: https://api.example.invalid
+      - name: Bundle driver app (Android)
+        working-directory: apps/driver
+        run: npx expo export --platform android --output-dir /tmp/driver
+        env:
+          EXPO_PUBLIC_API_URL: https://api.example.invalid

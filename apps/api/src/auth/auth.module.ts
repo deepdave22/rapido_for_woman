@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { JwtAuthGuard, RolesGuard } from './auth.guards';
 import { AuthService } from './auth.service';
 import { createOtpSender, OTP_SENDER } from './otp/otp-sender';
+import { TokenValidator } from './token-validator';
 
 @Module({
   imports: [
@@ -22,11 +23,12 @@ import { createOtpSender, OTP_SENDER } from './otp/otp-sender';
   controllers: [AuthController],
   providers: [
     AuthService,
+    TokenValidator,
     { provide: OTP_SENDER, inject: [Env], useFactory: createOtpSender },
     // Order matters: authenticate first, then check roles.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
-  exports: [AuthService],
+  exports: [AuthService, TokenValidator],
 })
 export class AuthModule {}

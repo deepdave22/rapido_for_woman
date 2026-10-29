@@ -25,23 +25,26 @@ covered by tests that were actually run.
 - [x] Health: liveness and readiness (DB and Redis)
 - [x] OpenAPI at `/docs` (non-production)
 - [x] CI: audit, format, lint, typecheck, migration drift, unit and integration tests, build
-- [ ] Idempotency-Key middleware (table exists): needed before booking/payments
+- [x] Idempotency-Key handling for booking (replay, mismatch and in-flight detection)
 - [ ] Staff auth: email + password (argon2) + TOTP, staff RBAC guard
 
-## Phase 3: Core ride journey (next)
+## Phase 3: Core ride journey ✅
 
-- [ ] Seed: service categories, one pilot zone, pricing v1 (synthetic, clearly labelled)
-- [ ] Driver onboarding API: documents (signed upload URLs), vehicle, verification checks, submit for review
-- [ ] Driver eligibility rule: every required check PASSED and unexpired, documents approved, vehicle active
-- [ ] Driver online/offline + location ingest (rate-limited, freshness and accuracy checks)
-- [ ] Maps provider interface + dev adapter (straight-line × factor, clearly labelled) + real adapter
-- [ ] Fare quotes (zone lookup with PostGIS, versioned rule, expiry)
-- [ ] Booking from a quote (idempotent; one active ride per passenger)
-- [ ] Dispatch: PostGIS nearest eligible drivers, ranking, timed offers, atomic accept, radius expansion, NO_DRIVER_FOUND
-- [ ] Ride transitions API (arrive, verify PIN, start, complete, cancel + fees, driver-cancel → reassign)
-- [ ] Realtime: Socket.IO gateway with auth; ride-scoped rooms; driver location to the assigned passenger only
-- [ ] Passenger app (Expo): login, home map, quote, book, track, PIN, complete, history
-- [ ] Driver app (Expo): login, onboarding, online toggle, offer, navigate, PIN, complete, earnings view
+- [x] Seed: categories, pilot zone, pricing v1 (synthetic, labelled; refuses to run in staging/prod)
+- [x] Driver onboarding API: vehicle, document upload (content-sniffed, size-limited, private storage), submit for review
+- [x] Driver eligibility rule: required checks PASSED and unexpired, documents approved and unexpired, vehicle active
+- [x] Driver online/offline; location ingest (accuracy, staleness, clock-skew checks; thinning; dropped when going offline)
+- [x] Maps/places provider interfaces: dev estimate + dev gazetteer (labelled), Google Routes and Places adapters (not yet live-tested)
+- [x] Fare quotes: PostGIS zone lookup, versioned rule, expiry, promo codes
+- [x] Booking from a quote: idempotent, terms required, one live ride per passenger
+- [x] Dispatch: PostGIS radius search, ranking with fairness, reservation, timed offers, atomic accept, radius expansion, search window, NO_DRIVER_FOUND
+- [x] Ride transitions: arriving, arrived (geofenced), PIN (5 attempts), start, complete (server-side final fare), passenger cancel with fees, driver cancel → re-dispatch
+- [x] Realtime: authenticated Socket.IO; offers, ride updates, driver location to the passenger only
+- [x] Shared typed API client (single-flight refresh, typed errors, idempotency keys)
+- [x] Passenger app: sign-in, terms, place search, quotes with fare breakdown, booking, live tracking, PIN, cancel, history, devices
+- [x] Driver app: sign-in, onboarding with document upload, online toggle, location sharing, offers with countdown, ride flow, history
+- [ ] Background location for drivers (foreground only today)
+- [ ] Device testing on real Android and iOS hardware
 
 ## Phase 4: Payments and safety
 

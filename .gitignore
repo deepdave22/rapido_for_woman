@@ -14,3 +14,7 @@ coverage/
 *.key
 .DS_Store
 Thumbs.db
+.storage/
+.storage-test/
+.expo-export-check/
+expo-env.d.ts

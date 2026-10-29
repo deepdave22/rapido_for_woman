@@ -175,6 +175,8 @@ export const rides = pgTable(
     cancellationFeePaise: integer().notNull().default(0),
     dispatchRound: smallint().notNull().default(0),
     requestedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    /** When the current search began (reset when a driver cancels and the ride is re-dispatched). */
+    searchStartedAt: timestamp({ withTimezone: true }),
     driverAssignedAt: timestamp({ withTimezone: true }),
     driverArrivedAt: timestamp({ withTimezone: true }),
     startedAt: timestamp({ withTimezone: true }),
