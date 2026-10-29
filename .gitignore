@@ -20,3 +20,4 @@ Thumbs.db
 expo-env.d.ts
 next-env.d.ts
 infra/full.env
+*.tsbuildinfo
