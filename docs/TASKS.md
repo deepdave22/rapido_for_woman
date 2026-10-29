@@ -46,15 +46,21 @@ covered by tests that were actually run.
 - [ ] Background location for drivers (foreground only today)
 - [ ] Device testing on real Android and iOS hardware
 
-## Phase 4: Payments and safety
+## Phase 4: Payments and safety ✅ (API complete; app checkout UI pending)
 
-- [ ] Payment provider interface; sandbox adapter (never real money); cash flow
-- [ ] Razorpay adapter: orders, signed webhook verification, idempotent processing, reconciliation
-- [ ] Ledger postings for completion, cash, refunds, cancellation fees, payouts
-- [ ] Driver earnings and statements derived from the ledger
-- [ ] SOS: incident creation tied to the ride and location, honest status, staff acknowledgement
-- [ ] Trusted contacts, trip-share links (expiring, revocable)
-- [ ] Support tickets, ratings
+- [x] Payment provider interface; sandbox adapter (HMAC-signed webhooks, refused in staging/prod); Razorpay adapter (orders, refunds, webhook signature)
+- [x] Online payment start (server-computed amount, idempotent), cash confirmation by driver
+- [x] Webhooks: raw-body signature check, event-id de-duplication, amount-mismatch refusal, failure → retry path
+- [x] Double-entry ledger postings: fares (online and cash), cancellation fees, refunds, payouts
+- [x] Driver earnings summary, commission, cash netting, CSV statement; payouts with failure reversal
+- [x] Refunds with four-eyes approval and over-refund protection
+- [x] SOS (passenger and driver): ride and location attached, de-duplicated, honest delivery status
+- [x] Incident reports with reporter-only timeline; trusted contacts (max 5); expiring, revocable trip-share links
+- [x] Ratings (one per side, 7-day window); support tickets with private threads
+- [x] Apps: SOS, share trip, trusted contacts, rating, pay-online start, cash confirmation, driver earnings
+- [ ] In-app Razorpay checkout (native SDK or hosted page). Today the app starts the order but cannot complete a live payment
+- [ ] SMS/push providers: notifications are recorded as SKIPPED with the reason until one is integrated
+- [ ] Automated payouts (RazorpayX or bank API); payouts are created and settled by staff
 
 ## Phase 5: Admin and operations
 

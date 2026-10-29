@@ -23,6 +23,9 @@ export const MAPS_PROVIDERS = ['estimate', 'google'] as const;
 export type MapsProvider = (typeof MAPS_PROVIDERS)[number];
 
 export const STORAGE_PROVIDERS = ['local', 's3'] as const;
+
+export const PAYMENT_PROVIDERS = ['sandbox', 'razorpay'] as const;
+export type PaymentProviderName = (typeof PAYMENT_PROVIDERS)[number];
 export type StorageProvider = (typeof STORAGE_PROVIDERS)[number];
 
 const toInt = ({ value }: { value: unknown }) =>
@@ -175,6 +178,31 @@ export class Env {
   @Max(600)
   DISPATCH_SEARCH_WINDOW_SECONDS = 90;
 
+  /** `sandbox` never moves money; staging/production refuse it. */
+  @IsIn(PAYMENT_PROVIDERS)
+  PAYMENT_PROVIDER: PaymentProviderName = 'sandbox';
+
+  @IsOptional()
+  @IsString()
+  RAZORPAY_KEY_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  RAZORPAY_KEY_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
+  RAZORPAY_WEBHOOK_SECRET?: string;
+
+  /** Signs sandbox webhooks so tests exercise the same verification path as production. */
+  @IsString()
+  @MinLength(16)
+  SANDBOX_WEBHOOK_SECRET = 'sandbox-webhook-secret-dev-only';
+
+  /** Public base for trip-share links, e.g. https://saheli.in/t/ (token is appended). */
+  @IsUrl({ require_tld: false })
+  SHARE_LINK_BASE_URL = 'http://localhost:3000/v1/public/trips/';
+
   get dispatchRadii(): number[] {
     return this.DISPATCH_RADII_METERS.split(',').map(Number);
   }
@@ -210,6 +238,19 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   if (deployed && env.STORAGE_PROVIDER === 'local') {
     throw new Error(
       `STORAGE_PROVIDER=local cannot be used in ${env.NODE_ENV}: identity documents need private object storage`,
+    );
+  }
+  if (deployed && env.PAYMENT_PROVIDER === 'sandbox') {
+    throw new Error(
+      `PAYMENT_PROVIDER=sandbox cannot be used in ${env.NODE_ENV}: it does not move money`,
+    );
+  }
+  if (
+    env.PAYMENT_PROVIDER === 'razorpay' &&
+    !(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET && env.RAZORPAY_WEBHOOK_SECRET)
+  ) {
+    throw new Error(
+      'PAYMENT_PROVIDER=razorpay requires RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET',
     );
   }
   if (env.OTP_PROVIDER === 'memory' && env.NODE_ENV !== 'test') {

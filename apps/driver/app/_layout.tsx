@@ -28,6 +28,7 @@ function Gate() {
       <Stack.Screen name="index" options={{ title: 'Saheli Driver' }} />
       <Stack.Screen name="ride" options={{ title: 'Current ride', headerBackVisible: false }} />
       <Stack.Screen name="history" options={{ title: 'Trips' }} />
+      <Stack.Screen name="earnings" options={{ title: 'Earnings' }} />
     </Stack>
   );
 }

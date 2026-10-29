@@ -50,7 +50,12 @@ professional advice before a pilot.
   `MAPS_PROVIDER=google`. The Google adapters are written to the documented APIs but have
   not been called with a live key.
 - The S3 storage adapter is not written. `STORAGE_PROVIDER=s3` fails at startup by design.
-- Payments are recorded as `PENDING` at completion. Collection, the ledger and payouts are Phase 4.
+- In-app online checkout is not built: the API creates gateway orders and processes signed
+  webhooks, but the app cannot yet open Razorpay checkout. Cash rides work end to end.
+- No SMS or push provider: SOS cannot actually message trusted contacts, and the app says so.
+  Integrate a DLT-registered SMS provider before pilot (also needed for OTP).
+- Refunds are absorbed by platform revenue; cancellation fees are treated as tax-inclusive.
+  Both need finance and tax review (L7).
 - The HTTP throttler keeps counters in memory per instance and is disabled in
   `NODE_ENV=test`. The OTP limits stored in the database still apply everywhere.
 - Account deletion and data export are not implemented.

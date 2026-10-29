@@ -13,7 +13,9 @@ import { Env } from './config/env';
 import { DatabaseModule } from './database/database.module';
 import { DriversModule } from './drivers/drivers.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { PaymentsModule } from './payments/payments.module';
 import { RidesModule } from './rides/rides.module';
+import { SafetyModule } from './safety/safety.module';
 import { HealthController } from './health/health.controller';
 import { PlacesController } from './places/places.controller';
 import { RedisModule } from './redis/redis.module';
@@ -72,6 +74,8 @@ const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     IntegrationsModule,
     DriversModule,
     RidesModule,
+    PaymentsModule,
+    SafetyModule,
   ],
   controllers: [HealthController, UsersController, PlacesController],
   providers: [

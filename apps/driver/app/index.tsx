@@ -113,13 +113,22 @@ export default function DriverHome() {
       <Stack.Screen
         options={{
           headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              hitSlop={12}
-              onPress={() => router.push('/history')}
-            >
-              <Text style={{ color: colors.primary, fontWeight: '600' }}>Trips</Text>
-            </Pressable>
+            <Row>
+              <Pressable
+                accessibilityRole="button"
+                hitSlop={12}
+                onPress={() => router.push('/earnings')}
+              >
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>Earnings</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                hitSlop={12}
+                onPress={() => router.push('/history')}
+              >
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>Trips</Text>
+              </Pressable>
+            </Row>
           ),
         }}
       />

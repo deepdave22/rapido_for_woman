@@ -6,6 +6,7 @@ import {
   Loading,
   Muted,
   Screen,
+  SosButton,
   space,
   TextField,
   type,
@@ -112,13 +113,35 @@ export default function DriverRideScreen() {
       <Screen>
         <Text style={type.title}>Trip complete</Text>
         <Card style={{ marginTop: space.md }}>
-          <Text style={type.heading}>Collect {formatInr(completed.finalTotalPaise ?? 0)}</Text>
+          <Text style={type.heading}>
+            {completed.paymentMethod === 'CASH' ? 'Collect' : 'Fare'}{' '}
+            {formatInr(completed.finalTotalPaise ?? 0)}
+          </Text>
           <Muted>
             {completed.paymentMethod === 'CASH'
               ? 'The passenger pays this amount in cash.'
               : 'The passenger pays online. Do not accept cash.'}
           </Muted>
+          {completed.paymentMethod === 'CASH' && completed.paymentStatus !== 'PAID' ? (
+            <Button
+              title="I received the cash"
+              loading={busy}
+              onPress={async () => {
+                setBusy(true);
+                try {
+                  const res = await api.confirmCashCollected(completed.id);
+                  setCompleted({ ...completed, paymentStatus: res.paymentStatus });
+                } catch (err) {
+                  setError(errorMessage(err));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            />
+          ) : null}
+          {completed.paymentStatus === 'PAID' ? <Muted>Payment recorded. Thank you.</Muted> : null}
         </Card>
+        {error ? <Banner tone="error">{error}</Banner> : null}
         <Button title="Back to home" onPress={() => router.replace('/')} />
       </Screen>
     );
@@ -208,6 +231,7 @@ export default function DriverRideScreen() {
         />
       ) : null}
 
+      <SosButton rideId={ride.id} />
       {beforePickup ? (
         <Button title="Cancel ride" variant="ghost" onPress={confirmCancel} disabled={busy} />
       ) : null}

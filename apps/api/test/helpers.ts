@@ -12,11 +12,13 @@ import {
   driverDocuments,
   driverProfiles,
   driverVerifications,
+  rides,
   users,
   vehicles,
 } from '../src/database/schema';
 import { seedReferenceData } from '../src/database/seed';
 import { REQUIRED_CHECKS, requiredDocuments } from '../src/drivers/driver-eligibility.service';
+import { SandboxPaymentProvider } from '../src/payments/payment-provider';
 import { TEST_ENV } from './test-env';
 
 export interface TestContext {
@@ -29,7 +31,10 @@ export interface TestContext {
 
 export async function createTestApp(): Promise<TestContext> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  const app = moduleRef.createNestApplication<NestExpressApplication>({ bufferLogs: true });
+  const app = moduleRef.createNestApplication<NestExpressApplication>({
+    bufferLogs: true,
+    rawBody: true,
+  });
   configureApp(app);
   await app.init();
   return {
@@ -235,4 +240,50 @@ export async function currentOffer(ctx: TestContext, driver: LoggedIn) {
     .set(bearer(driver.accessToken))
     .expect(200);
   return res.body.offer as { id: string; rideId: string; estimatedEarningPaise: number } | null;
+}
+
+/** Runs a booked ride all the way to COMPLETED and returns its id. */
+export async function completeRide(
+  ctx: TestContext,
+  passenger: LoggedIn,
+  driver: LoggedIn,
+  paymentMethod: 'CASH' | 'ONLINE' = 'CASH',
+): Promise<string> {
+  const ride = await bookRide(ctx, passenger, 'BIKE', paymentMethod);
+  const offer = await currentOffer(ctx, driver);
+  const auth = bearer(driver.accessToken);
+  await ctx.http.post(`/v1/driver/offers/${offer!.id}/accept`).set(auth).expect(200);
+  await ctx.http.post(`/v1/driver/rides/${ride.id}/arrived`).set(auth).expect(200);
+  const [row] = await ctx.db
+    .select({ pin: rides.pickupPin })
+    .from(rides)
+    .where(eq(rides.id, ride.id));
+  await ctx.http
+    .post(`/v1/driver/rides/${ride.id}/verify-pin`)
+    .set(auth)
+    .send({ pin: row!.pin })
+    .expect(200);
+  await ctx.http.post(`/v1/driver/rides/${ride.id}/start`).set(auth).expect(200);
+  await ctx.http.post(`/v1/driver/rides/${ride.id}/complete`).set(auth).expect(200);
+  return ride.id;
+}
+
+let eventCounter = 0;
+/** Sends a gateway webhook signed exactly as the sandbox provider verifies it. */
+export function sendWebhook(
+  ctx: TestContext,
+  event: string,
+  entity: Record<string, unknown>,
+  opts: { eventId?: string; secret?: string } = {},
+) {
+  const body = JSON.stringify({ event, payload: { payment: { entity } } });
+  return ctx.http
+    .post('/v1/payments/webhook')
+    .set('Content-Type', 'application/json')
+    .set('X-Razorpay-Event-Id', opts.eventId ?? `evt_test_${++eventCounter}`)
+    .set(
+      'X-Razorpay-Signature',
+      SandboxPaymentProvider.sign(opts.secret ?? 'sandbox-webhook-secret-dev-only', body),
+    )
+    .send(body);
 }

@@ -114,3 +114,19 @@ sweep if offer timing needs to be tighter than about 2 s.
 beyond the free window. Distance actually driven is not re-metered.
 **Why:** Predictable for passengers and resistant to detours. Route-deviation alerts and
 re-pricing for passenger-requested stop or destination changes are separate features.
+
+## ADR-015 Payments: webhooks are the source of truth
+
+**Decision:** A ride is marked paid only by a signature-verified gateway webhook (or a
+driver's cash confirmation), never by the app reporting success. Webhooks are stored by
+gateway event id before processing, so retries are no-ops. A captured amount that differs
+from the order is refused and audited. Every financial effect is a balanced ledger
+transaction, so balances (driver earnings, cash held, payouts) are always derived, never
+stored.
+
+## ADR-016 Safety features report delivery truthfully
+
+**Decision:** SOS always records an incident, even without a ride, location or
+connectivity to other services. The response lists what actually happened (incident
+received; trusted-contact SMS sent or not, and why) and always shows 112. The app never
+says "help is on the way" unless staff have recorded a response.

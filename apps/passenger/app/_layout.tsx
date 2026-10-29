@@ -24,6 +24,7 @@ function Gate() {
       <Stack.Screen name="ride/[id]" options={{ title: 'Your ride', headerBackVisible: false }} />
       <Stack.Screen name="history" options={{ title: 'Your rides' }} />
       <Stack.Screen name="account" options={{ title: 'Account' }} />
+      <Stack.Screen name="safety" options={{ title: 'Safety' }} />
     </Stack>
   );
 }

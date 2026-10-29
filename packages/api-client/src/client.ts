@@ -6,7 +6,12 @@ import type {
   Offer,
   Onboarding,
   OtpChallenge,
+  EarningsSummary,
+  Incident,
   PassengerRide,
+  PaymentStart,
+  SosResult,
+  TrustedContact,
   Place,
   PlaceResult,
   QuoteResponse,
@@ -262,6 +267,80 @@ export class SaheliClient {
       method: 'POST',
       body: { reason },
     });
+  }
+
+  // ---------- payments ----------
+
+  /** Starts (or resumes) online payment for what a ride owes. The server decides the amount. */
+  startPayment(rideId: string): Promise<PaymentStart> {
+    return this.request(`/v1/rides/${encodeURIComponent(rideId)}/payments`, {
+      method: 'POST',
+      idempotencyKey: this.opts.newIdempotencyKey(),
+    });
+  }
+
+  confirmCashCollected(rideId: string): Promise<{ rideId: string; paymentStatus: string }> {
+    return this.request(`/v1/driver/rides/${encodeURIComponent(rideId)}/cash-collected`, {
+      method: 'POST',
+    });
+  }
+
+  earnings(from: string, to: string): Promise<EarningsSummary> {
+    return this.request('/v1/driver/earnings', { query: { from, to } });
+  }
+
+  // ---------- safety ----------
+
+  sos(input: { rideId?: string; lat?: number; lng?: number } = {}): Promise<SosResult> {
+    return this.request('/v1/safety/sos', { method: 'POST', body: input });
+  }
+
+  reportIncident(input: { type: string; rideId?: string; description: string }): Promise<Incident> {
+    return this.request('/v1/safety/incidents', { method: 'POST', body: input });
+  }
+
+  myIncidents(): Promise<Incident[]> {
+    return this.request('/v1/safety/incidents');
+  }
+
+  trustedContacts(): Promise<TrustedContact[]> {
+    return this.request('/v1/me/trusted-contacts');
+  }
+
+  addTrustedContact(input: {
+    name: string;
+    phone: string;
+    relationship?: string;
+  }): Promise<TrustedContact> {
+    return this.request('/v1/me/trusted-contacts', { method: 'POST', body: input });
+  }
+
+  removeTrustedContact(id: string): Promise<void> {
+    return this.request(`/v1/me/trusted-contacts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  }
+
+  shareTrip(rideId: string): Promise<{ url: string; expiresAt: string }> {
+    return this.request(`/v1/rides/${encodeURIComponent(rideId)}/share`, { method: 'POST' });
+  }
+
+  rate(
+    rideId: string,
+    stars: number,
+    comment?: string,
+  ): Promise<{ rideId: string; stars: number }> {
+    return this.request(`/v1/rides/${encodeURIComponent(rideId)}/rating`, {
+      method: 'POST',
+      body: { stars, comment },
+    });
+  }
+
+  createTicket(input: {
+    category: string;
+    subject: string;
+    message: string;
+    rideId?: string;
+  }): Promise<unknown> {
+    return this.request('/v1/support/tickets', { method: 'POST', body: input });
   }
 
   // ---------- transport ----------

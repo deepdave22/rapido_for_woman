@@ -110,6 +110,7 @@ export default function Home() {
           headerRight: () => (
             <Row>
               <HeaderLink label="Rides" onPress={() => router.push('/history')} />
+              <HeaderLink label="Safety" onPress={() => router.push('/safety')} />
               <HeaderLink label="Account" onPress={() => router.push('/account')} />
             </Row>
           ),

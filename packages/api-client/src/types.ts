@@ -177,3 +177,64 @@ export interface SavedPlace extends PlaceResult {
   id: string;
   label: 'HOME' | 'WORK' | 'OTHER';
 }
+
+export interface PaymentStart {
+  paymentId: string;
+  provider: string;
+  orderId: string | null;
+  amountPaise: number;
+  currency: 'INR';
+  status: string;
+  /** Checkout key for the gateway SDK; null in sandbox. */
+  publicKey: string | null;
+  sandbox: boolean;
+}
+
+export interface Incident {
+  id: string;
+  type: string;
+  severity: string;
+  status: 'OPEN' | 'ACKNOWLEDGED' | 'RESPONDING' | 'RESOLVED' | 'CLOSED';
+  rideId: string | null;
+  createdAt: string;
+  acknowledgedAt: string | null;
+  responseInitiatedAt: string | null;
+  resolvedAt: string | null;
+  timeline: { action: string; at: string }[];
+}
+
+export interface SosResult {
+  incident: Incident;
+  trustedContacts: { saved: number; sent: number; status: string; reason?: string } | null;
+  message: string;
+  emergencyNumber: string;
+  duplicate: boolean;
+}
+
+export interface TrustedContact {
+  id: string;
+  name: string;
+  phone: string;
+  relationship: string | null;
+}
+
+export interface EarningsSummary {
+  from: string;
+  to: string;
+  trips: number;
+  earningsPaise: number;
+  cashCollectedPaise: number;
+  grossFarePaise: number;
+  commissionPaise: number;
+  driverCancellations: number;
+  balance: { payablePaise: number; cashHeldPaise: number; netPaise: number };
+  daily: { date: string; trips: number; earningsPaise: number; cashCollectedPaise: number }[];
+  payouts: {
+    id: string;
+    amountPaise: number;
+    status: string;
+    periodStart: string;
+    periodEnd: string;
+    paidAt: string | null;
+  }[];
+}

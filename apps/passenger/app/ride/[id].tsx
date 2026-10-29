@@ -9,14 +9,16 @@ import {
   Muted,
   Row,
   Screen,
+  SosButton,
   space,
   type,
   useAuth,
   useRealtime,
 } from '@saheli/mobile-core';
+import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Pressable, Share, Text, View } from 'react-native';
 import { API_URL } from '../../src/config';
 import { RideMap } from '../../src/RideMap';
 
@@ -33,6 +35,8 @@ export default function RideScreen() {
   const [ride, setRide] = useState<PassengerRide | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [payNote, setPayNote] = useState<string | null>(null);
+  const [rated, setRated] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -71,6 +75,51 @@ export default function RideScreen() {
     load,
   );
 
+  async function currentLocation() {
+    const perm = await Location.getForegroundPermissionsAsync();
+    if (perm.status !== 'granted') return null;
+    const pos = await Location.getLastKnownPositionAsync();
+    return pos ? { lat: pos.coords.latitude, lng: pos.coords.longitude } : null;
+  }
+
+  async function shareTrip() {
+    try {
+      const link = await api.shareTrip(id);
+      await Share.share({
+        message: `Follow my Saheli ride live: ${link.url} (link expires automatically)`,
+      });
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }
+
+  async function payOnline() {
+    setBusy(true);
+    setError(null);
+    try {
+      const p = await api.startPayment(id);
+      // Checkout UI is not integrated yet (see LAUNCH_BLOCKERS). Say so plainly.
+      setPayNote(
+        p.sandbox
+          ? 'Test mode: no real money moves. The payment completes when the test gateway confirms it.'
+          : 'In-app checkout is not available yet. Please pay your driver in cash or contact support.',
+      );
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function rate(stars: number) {
+    try {
+      await api.rate(id, stars);
+      setRated(true);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }
+
   function confirmCancel() {
     Alert.alert('Cancel ride?', 'A cancellation fee may apply once a driver is on the way.', [
       ...CANCEL_REASONS.map((reason) => ({ text: reason, onPress: () => void cancel(reason) })),
@@ -100,6 +149,11 @@ export default function RideScreen() {
 
   const ended =
     ride.status === 'COMPLETED' || ride.status === 'CANCELLED' || ride.status === 'NO_DRIVER_FOUND';
+  const owesOnline =
+    ride.paymentStatus !== 'PAID' &&
+    ride.paymentStatus !== 'WAIVED' &&
+    ((ride.status === 'COMPLETED' && ride.paymentMethod === 'ONLINE') ||
+      (ride.status === 'CANCELLED' && ride.cancellationFeePaise > 0));
   const canCancel = ['SEARCHING', 'DRIVER_ASSIGNED', 'DRIVER_ARRIVING', 'DRIVER_ARRIVED'].includes(
     ride.status,
   );
@@ -117,6 +171,13 @@ export default function RideScreen() {
 
       {!ended ? (
         <RideMap pickup={ride.pickup} dropoff={ride.dropoff} driver={ride.driver?.location} />
+      ) : null}
+
+      {!ended && ride.status !== 'SEARCHING' ? (
+        <>
+          <SosButton rideId={ride.id} getLocation={currentLocation} />
+          <Button title="Share trip with family" variant="secondary" onPress={shareTrip} />
+        </>
       ) : null}
 
       {ride.pickupPin ? (
@@ -176,6 +237,39 @@ export default function RideScreen() {
               Includes waiting charge {formatInr(ride.finalBreakdown.waitingChargePaise)}
             </Muted>
           ) : null}
+        </Card>
+      ) : null}
+
+      {owesOnline ? (
+        <Card>
+          <Text style={type.heading}>
+            Pay{' '}
+            {formatInr(
+              ride.status === 'COMPLETED' ? (ride.finalTotalPaise ?? 0) : ride.cancellationFeePaise,
+            )}
+          </Text>
+          {payNote ? <Muted>{payNote}</Muted> : null}
+          <Button title="Pay online" onPress={payOnline} loading={busy} />
+        </Card>
+      ) : null}
+
+      {ride.status === 'COMPLETED' && !rated ? (
+        <Card>
+          <Text style={type.heading}>Rate your driver</Text>
+          <Row>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Pressable
+                key={n}
+                accessibilityRole="button"
+                accessibilityLabel={`${n} star${n > 1 ? 's' : ''}`}
+                onPress={() => rate(n)}
+                hitSlop={8}
+                style={{ padding: 6 }}
+              >
+                <Text style={{ fontSize: 32, color: colors.accent }}>★</Text>
+              </Pressable>
+            ))}
+          </Row>
         </Card>
       ) : null}
 
