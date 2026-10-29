@@ -1,3 +1,70 @@
-# Rapido for Women
+# Saheli Rides
 
-A ride-hailing app built for women riders.
+A women-focused ride-hailing platform for India: women passengers booking verified women
+drivers, with safety built into the ride lifecycle. _"Saheli Rides" is a working name._
+
+> **Status: foundation stage, not usable for rides yet.** The API has phone-OTP sign-in,
+> sessions and the full database schema. Booking, dispatch, payments, safety workflows and
+> the apps are in progress. See [docs/TASKS.md](docs/TASKS.md) and
+> [docs/LAUNCH_BLOCKERS.md](docs/LAUNCH_BLOCKERS.md).
+
+## Repository layout
+
+```
+apps/
+  api/            NestJS API (REST + soon WebSocket), Drizzle ORM, migrations in drizzle/
+packages/
+  domain/         Pure business rules: fares, ride lifecycle, money, phone numbers
+infra/            docker compose for local Postgres+PostGIS and Redis
+docs/             Architecture, decisions, task checklist, launch blockers
+```
+
+Planned: `apps/passenger`, `apps/driver` (Expo) and `apps/admin` (Next.js).
+
+## Prerequisites
+
+- Node.js 22 (see `.nvmrc`)
+- Docker Desktop
+
+## Local setup
+
+```bash
+npm install
+npm run infra:up                         # Postgres on localhost:55432, Redis on 6379
+cp apps/api/.env.example apps/api/.env   # then replace both secrets (command is in the file)
+npm run build -w @saheli/domain
+npm run db:migrate
+npm run dev:api                          # http://localhost:3000, docs at /docs
+```
+
+With `OTP_PROVIDER=console`, login codes are printed to the API log. No SMS is sent.
+
+## Tests
+
+```bash
+npm test          # unit tests (domain + API)
+npm run test:int  # integration tests against Postgres/PostGIS + Redis (needs infra:up)
+npm run lint && npm run typecheck && npm run format:check
+```
+
+Integration tests use the separate `saheli_test` database, which is rebuilt from
+migrations on every run, and Redis db 15.
+
+## Database changes
+
+Edit `apps/api/src/database/schema/*`, then:
+
+```bash
+npm run db:generate -w @saheli/api -- --name=describe_change
+npm run db:migrate
+```
+
+Commit the generated SQL. CI fails if the schema and migrations disagree.
+
+## Principles
+
+- The server decides fares, eligibility and ride state; clients never send amounts to be trusted.
+- Money is integer paise. The ledger is double-entry and append-only.
+- No fake integrations in deployed environments: a missing provider stops startup.
+- Safety features describe exactly what happens. Nothing claims an emergency response
+  that doesn't exist.

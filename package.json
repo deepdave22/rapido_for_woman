@@ -1,0 +1,41 @@
+{
+  "name": "saheli-rides",
+  "private": true,
+  "description": "Women-focused ride-hailing platform for India (monorepo)",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:int": "npm run test:int --workspaces --if-present",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "db:migrate": "npm run db:migrate -w @saheli/api",
+    "db:seed": "npm run db:seed -w @saheli/api",
+    "dev:api": "npm run dev -w @saheli/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "16.5.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1"
+  },
+  "overrides": {
+    "multer": "2.5.0",
+    "@nestjs/swagger": {
+      "js-yaml": "5.5.0"
+    }
+  }
+}

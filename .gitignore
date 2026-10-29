@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+coverage/
+.turbo/
+.next/
+.expo/
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+.DS_Store
+Thumbs.db
