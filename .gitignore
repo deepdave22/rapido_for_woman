@@ -18,3 +18,4 @@ Thumbs.db
 .storage-test/
 .expo-export-check/
 expo-env.d.ts
+next-env.d.ts

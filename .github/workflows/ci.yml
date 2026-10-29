@@ -44,7 +44,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Production dependency audit (server packages, blocking)
-        run: npm audit --omit=dev --audit-level=high -w @saheli/api -w @saheli/domain -w @saheli/api-client
+        run: npm audit --omit=dev --audit-level=high -w @saheli/api -w @saheli/domain -w @saheli/api-client -w @saheli/admin
       - name: Mobile dependency audit (reported, see ADR-012)
         run: npm audit --omit=dev -w @saheli/passenger -w @saheli/driver || true
       - run: npm run format:check
@@ -90,3 +90,19 @@ jobs:
         run: npx expo export --platform android --output-dir /tmp/driver
         env:
           EXPO_PUBLIC_API_URL: https://api.example.invalid
+
+  admin-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w @saheli/domain -w @saheli/api-client
+      - name: Build admin dashboard
+        run: npm run build -w @saheli/admin
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'

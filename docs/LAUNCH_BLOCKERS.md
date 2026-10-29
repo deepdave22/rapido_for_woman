@@ -59,5 +59,6 @@ professional advice before a pilot.
 - The HTTP throttler keeps counters in memory per instance and is disabled in
   `NODE_ENV=test`. The OTP limits stored in the database still apply everywhere.
 - Account deletion and data export are not implemented.
-- Staff authentication and the admin dashboard are Phase 5. Driver approval is currently a
-  direct database action (used by tests).
+- Admin dashboard has no QR code for TOTP enrolment or live map; staff must keep the incident
+  queue open (it polls every 10 s). A paging/alerting integration for new SOS is needed before pilot.
+- TOTP codes can be replayed within their 30-second window (no used-code tracking yet).

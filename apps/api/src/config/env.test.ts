@@ -5,6 +5,7 @@ const base = {
   REDIS_URL: 'redis://localhost:6379',
   JWT_ACCESS_SECRET: 'x'.repeat(32),
   HASH_PEPPER: 'y'.repeat(32),
+  DATA_ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
 };
 
 describe('validateEnv', () => {

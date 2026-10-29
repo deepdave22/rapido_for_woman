@@ -16,6 +16,7 @@ apps/
   api/            NestJS API (REST + Socket.IO), Drizzle ORM, migrations in drizzle/
   passenger/      Passenger app (Expo SDK 54 / React Native)
   driver/         Driver app (Expo SDK 54 / React Native)
+  admin/          Operations dashboard (Next.js 15)
 packages/
   domain/         Pure business rules: fares, dispatch ranking, ride lifecycle, money
   api-client/     Typed HTTP client shared by the apps
@@ -23,8 +24,6 @@ packages/
 infra/            docker compose for local Postgres+PostGIS and Redis
 docs/             Architecture, decisions, task checklist, launch blockers
 ```
-
-Planned: `apps/admin` (Next.js).
 
 ## Prerequisites
 
@@ -44,6 +43,16 @@ npm run dev:api                          # http://localhost:3000, docs at /docs
 ```
 
 With `OTP_PROVIDER=console`, login codes are printed to the API log. No SMS is sent.
+
+## Admin dashboard
+
+```bash
+npm run admin:create -w @saheli/api -- you@example.com "Your Name"   # prints a one-time password
+cp apps/admin/.env.example apps/admin/.env.local
+npm run dev -w @saheli/admin                                        # http://localhost:3001
+```
+
+The first sign-in asks you to add a TOTP key to an authenticator app.
 
 ## Mobile apps
 

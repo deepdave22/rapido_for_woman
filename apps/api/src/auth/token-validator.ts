@@ -22,7 +22,10 @@ export class TokenValidator {
 
     let claims: AccessTokenClaims;
     try {
-      claims = await this.jwt.verifyAsync<AccessTokenClaims>(token, { algorithms: ['HS256'] });
+      claims = await this.jwt.verifyAsync<AccessTokenClaims>(token, {
+        algorithms: ['HS256'],
+        audience: 'app',
+      });
     } catch {
       throw new AppError(
         401,

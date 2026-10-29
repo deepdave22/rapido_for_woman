@@ -130,3 +130,18 @@ stored.
 connectivity to other services. The response lists what actually happened (incident
 received; trusted-contact SMS sent or not, and why) and always shows 112. The app never
 says "help is on the way" unless staff have recorded a response.
+
+## ADR-017 Admin dashboard keeps tokens server-side
+
+**Decision:** The Next.js dashboard never exposes staff tokens to browser JavaScript. Its route
+handlers hold them in `httpOnly`, `SameSite=strict` cookies, refresh them, and proxy
+`/api/admin/*` to the API. State-changing requests must carry an `x-saheli-csrf` header.
+**Why:** It limits the damage an XSS bug in a privileged UI can do, and keeps one source of truth
+for authorisation (the API), so the dashboard has no business logic to get wrong.
+
+## ADR-018 Staff credentials without native dependencies
+
+**Decision:** scrypt (Node built-in) for staff passwords and an in-house RFC 6238 TOTP
+(verified against the RFC test vectors), instead of argon2 and otplib.
+**Why:** It avoids native build steps on Windows and in CI, and avoids an unmaintained OTP
+dependency. The code is small and fully unit-tested.

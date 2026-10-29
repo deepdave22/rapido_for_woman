@@ -4,6 +4,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
+import { AdminModule } from './admin/admin.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { AllExceptionsFilter } from './common/errors';
@@ -76,6 +77,7 @@ const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     RidesModule,
     PaymentsModule,
     SafetyModule,
+    AdminModule,
   ],
   controllers: [HealthController, UsersController, PlacesController],
   providers: [

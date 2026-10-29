@@ -12,6 +12,8 @@ export default tseslint.config(
       '**/node_modules/**',
       'apps/api/drizzle/**',
       '**/.expo/**',
+      '**/.next/**',
+      '**/next-env.d.ts',
       '.expo-export-check/**',
       '**/expo-env.d.ts',
     ],
@@ -32,7 +34,10 @@ export default tseslint.config(
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
       'no-empty': ['error', { allowEmptyCatch: false }],
     },
   },

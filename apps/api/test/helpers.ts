@@ -13,12 +13,16 @@ import {
   driverProfiles,
   driverVerifications,
   rides,
+  staffRoleAssignments,
+  staffUsers,
   users,
   vehicles,
 } from '../src/database/schema';
 import { seedReferenceData } from '../src/database/seed';
 import { REQUIRED_CHECKS, requiredDocuments } from '../src/drivers/driver-eligibility.service';
 import { SandboxPaymentProvider } from '../src/payments/payment-provider';
+import type { StaffRole } from '../src/admin/staff-auth';
+import { base32Decode, hashPassword, totpAt } from '../src/admin/staff-crypto';
 import { TEST_ENV } from './test-env';
 
 export interface TestContext {
@@ -286,4 +290,45 @@ export function sendWebhook(
       SandboxPaymentProvider.sign(opts.secret ?? 'sandbox-webhook-secret-dev-only', body),
     )
     .send(body);
+}
+
+export interface StaffSession {
+  staffId: string;
+  accessToken: string;
+  refreshToken: string;
+  totpSecret: string;
+}
+
+let staffCounter = 0;
+/** Creates a staff member with the given roles and signs in through password + TOTP enrollment. */
+export async function staffLogin(ctx: TestContext, roles: StaffRole[]): Promise<StaffSession> {
+  const email = `staff${++staffCounter}-${Date.now()}@test.invalid`;
+  const password = 'correct horse battery 42';
+  const [s] = await ctx.db
+    .insert(staffUsers)
+    .values({
+      email,
+      fullName: `Staff ${staffCounter}`,
+      passwordHash: await hashPassword(password),
+    })
+    .returning({ id: staffUsers.id });
+  await ctx.db
+    .insert(staffRoleAssignments)
+    .values(roles.map((role) => ({ staffUserId: s!.id, role })));
+  const login = await ctx.http.post('/v1/admin/auth/login').send({ email, password }).expect(200);
+  const enroll = await ctx.http
+    .post('/v1/admin/auth/mfa/enroll')
+    .send({ challengeToken: login.body.challengeToken })
+    .expect(200);
+  const code = totpAt(base32Decode(enroll.body.secret), Date.now() / 1000);
+  const verified = await ctx.http
+    .post('/v1/admin/auth/mfa/verify')
+    .send({ challengeToken: login.body.challengeToken, code })
+    .expect(200);
+  return {
+    staffId: s!.id,
+    accessToken: verified.body.accessToken,
+    refreshToken: verified.body.refreshToken,
+    totpSecret: enroll.body.secret,
+  };
 }

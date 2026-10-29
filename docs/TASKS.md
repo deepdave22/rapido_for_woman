@@ -62,13 +62,20 @@ covered by tests that were actually run.
 - [ ] SMS/push providers: notifications are recorded as SKIPPED with the reason until one is integrated
 - [ ] Automated payouts (RazorpayX or bank API); payouts are created and settled by staff
 
-## Phase 5: Admin and operations
+## Phase 5: Administration and operations ✅
 
-- [ ] Admin dashboard (Next.js): staff login with MFA, role-based navigation
-- [ ] Driver review queue, document viewer (signed URLs, audited access), approve/reject/suspend
-- [ ] Live rides map, incident queue and timeline, ticket queue
-- [ ] Pricing versions editor, zones, promotions
-- [ ] Metrics from the database (no hardcoded numbers)
+- [x] Staff auth: scrypt passwords, mandatory TOTP (RFC 6238, secrets AES-256-GCM encrypted), lockout, 12-hour rotating sessions, separate JWT audience from app tokens
+- [x] Server-side RBAC (SUPER_ADMIN, OPERATIONS, SUPPORT, FINANCE, SAFETY), roles read per request; first super admin via CLI (`admin:create`)
+- [x] Driver review: queue, document viewing (no-store, audited), document approve/reject, verification check results, approve/reject/suspend/reactivate with gap checks
+- [x] Live and historical rides, ride timeline/offers/payments, admin end-ride; passenger search, account suspension (revokes all devices)
+- [x] Safety queue (severity-ordered), acknowledge → respond (note required, then visible to reporter) → resolve → close; internal notes
+- [x] Support queue with replies and private internal notes
+- [x] Versioned pricing publishing (no backdating), zones (WKT validated by PostGIS), promotions
+- [x] Finance: four-eyes refunds, driver balances, payout creation and settlement; ride CSV export without personal data (formula-injection safe, audited)
+- [x] Database-backed overview metrics; audit log viewer
+- [x] Admin dashboard (Next.js 15): cookie-based server proxy (httpOnly, SameSite=strict, CSRF header), strict CSP, role-aware navigation, all screens above
+- [ ] QR code for TOTP enrolment (today: copy the key into the authenticator)
+- [ ] Map view for live rides (today: coordinates linking to Google Maps)
 
 ## Phase 6: Hardening
 

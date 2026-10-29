@@ -178,6 +178,15 @@ export class Env {
   @Max(600)
   DISPATCH_SEARCH_WINDOW_SECONDS = 90;
 
+  /** 32 random bytes, base64. Encrypts sensitive fields at rest (staff TOTP secrets). */
+  @IsString()
+  @Matches(/^[A-Za-z0-9+/_-]{43}=?$/, { message: 'DATA_ENCRYPTION_KEY must be 32 bytes, base64' })
+  DATA_ENCRYPTION_KEY: string;
+
+  get dataEncryptionKey(): Buffer {
+    return Buffer.from(this.DATA_ENCRYPTION_KEY, 'base64');
+  }
+
   /** `sandbox` never moves money; staging/production refuse it. */
   @IsIn(PAYMENT_PROVIDERS)
   PAYMENT_PROVIDER: PaymentProviderName = 'sandbox';

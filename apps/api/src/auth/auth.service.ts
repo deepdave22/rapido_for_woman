@@ -382,6 +382,7 @@ export class AuthService {
   private signAccessToken(claims: AccessTokenClaims): Promise<string> {
     return this.jwt.signAsync(claims, {
       algorithm: 'HS256',
+      audience: 'app',
       expiresIn: this.env.JWT_ACCESS_TTL_SECONDS,
     });
   }

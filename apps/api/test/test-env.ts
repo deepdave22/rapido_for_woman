@@ -18,4 +18,5 @@ export const TEST_ENV: Record<string, string> = {
   DISPATCH_SWEEP_INTERVAL_MS: '0',
   STORAGE_LOCAL_DIR: '.storage-test',
   TERMS_VERSION: 'test-terms-1',
+  DATA_ENCRYPTION_KEY: 'dGVzdC1vbmx5LWRhdGEta2V5LTMyLWJ5dGVzLWxvbmc=',
 };
