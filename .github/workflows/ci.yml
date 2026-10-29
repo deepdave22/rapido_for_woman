@@ -106,3 +106,14 @@ jobs:
         run: npm run build -w @saheli/admin
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+
+  docker-images:
+    # Builds the production images so a broken Dockerfile fails CI, not a deploy.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -f apps/api/Dockerfile -t saheli-api:ci .
+      - name: Build admin image
+        run: docker build -f apps/admin/Dockerfile -t saheli-admin:ci .

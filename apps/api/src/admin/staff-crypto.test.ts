@@ -5,6 +5,7 @@ import {
   decryptField,
   encryptField,
   hashPassword,
+  matchTotpStep,
   passwordProblem,
   totpAt,
   verifyPassword,
@@ -31,6 +32,13 @@ describe('TOTP (RFC 6238 test vectors, SHA-1)', () => {
     expect(verifyTotp(b32, code, now + 30_000)).toBe(true);
     expect(verifyTotp(b32, code, now + 90_000)).toBe(false);
     expect(verifyTotp(b32, 'abc123', now)).toBe(false);
+  });
+
+  it('reports the matched time step', () => {
+    const b32 = base32Encode(secret);
+    const now = 1_700_000_010_000;
+    expect(matchTotpStep(b32, totpAt(secret, now / 1000), now)).toBe(Math.floor(now / 1000 / 30));
+    expect(matchTotpStep(b32, '000000', now)).toBeNull();
   });
 
   it('round-trips base32 (RFC 4648 vector)', () => {

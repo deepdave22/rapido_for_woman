@@ -85,6 +85,35 @@ export class PricingService {
     return rule ?? null;
   }
 
+  /**
+   * The rule in effect now for every active category in a zone, in display
+   * order. One query instead of one per category.
+   */
+  async currentRulesForZone(zoneId: string, at = new Date()) {
+    const rows = await this.db
+      .selectDistinctOn([pricingRules.categoryCode], {
+        rule: pricingRules,
+        displayName: serviceCategories.displayName,
+        seats: serviceCategories.seats,
+        sortOrder: serviceCategories.sortOrder,
+      })
+      .from(pricingRules)
+      .innerJoin(serviceCategories, eq(serviceCategories.code, pricingRules.categoryCode))
+      .where(
+        and(
+          eq(pricingRules.zoneId, zoneId),
+          lte(pricingRules.effectiveFrom, at),
+          eq(serviceCategories.active, true),
+        ),
+      )
+      .orderBy(
+        pricingRules.categoryCode,
+        desc(pricingRules.effectiveFrom),
+        desc(pricingRules.version),
+      );
+    return rows.sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
   async ruleById(id: string, tx?: Tx): Promise<PricingRuleRow> {
     const [rule] = await (tx ?? this.db).select().from(pricingRules).where(eq(pricingRules.id, id));
     if (!rule) throw new Error(`Pricing rule ${id} missing`);

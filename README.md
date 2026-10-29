@@ -3,11 +3,10 @@
 A women-focused ride-hailing platform for India: women passengers booking verified women
 drivers, with safety built into the ride lifecycle. _"Saheli Rides" is a working name._
 
-> **Status: pre-pilot.** The full ride journey works end to end through the API:
-> driver onboarding, quotes, booking, dispatch, PIN-verified pickup, completion, cancellation
-> and live updates. Both mobile apps are built but not yet device-tested. Payments, safety
-> workflows and the admin dashboard are in progress. See [docs/TASKS.md](docs/TASKS.md)
-> and [docs/LAUNCH_BLOCKERS.md](docs/LAUNCH_BLOCKERS.md).
+> **Status: engineering complete for a controlled pilot; not launch-ready.** All six phases
+> are built and tested (API, passenger and driver apps, admin dashboard). Launch still needs legal
+> answers, real provider accounts, a staffed safety desk, device testing and a staging environment.
+> Start with [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md).
 
 ## Repository layout
 
@@ -22,7 +21,7 @@ packages/
   api-client/     Typed HTTP client shared by the apps
   mobile-core/    Shared React Native theme, components, sign-in, realtime
 infra/            docker compose for local Postgres+PostGIS and Redis
-docs/             Architecture, decisions, task checklist, launch blockers
+docs/             Architecture, decisions, tasks, launch blockers, deployment, security, runbook
 ```
 
 ## Prerequisites
@@ -93,3 +92,17 @@ Commit the generated SQL. CI fails if the schema and migrations disagree.
 - No fake integrations in deployed environments: a missing provider stops startup.
 - Safety features describe exactly what happens. Nothing claims an emergency response
   that doesn't exist.
+
+## Documentation
+
+| Document                                             | What it covers                                                      |
+| ---------------------------------------------------- | ------------------------------------------------------------------- |
+| [PRODUCTION_READINESS](docs/PRODUCTION_READINESS.md) | Honest status against the pilot Definition of Done                  |
+| [LAUNCH_BLOCKERS](docs/LAUNCH_BLOCKERS.md)           | Legal, operational and external-service blockers; known limitations |
+| [ARCHITECTURE](docs/ARCHITECTURE.md)                 | System diagram, invariants, ride lifecycle, ER diagram              |
+| [DECISIONS](docs/DECISIONS.md)                       | Architecture decision records                                       |
+| [DEPLOYMENT](docs/DEPLOYMENT.md)                     | Environments, release, migrations, rollback, backups, costs         |
+| [SECURITY_PRIVACY](docs/SECURITY_PRIVACY.md)         | Security and DPDP checklist                                         |
+| [PERFORMANCE](docs/PERFORMANCE.md)                   | Targets and load-test results                                       |
+| [RUNBOOK](docs/RUNBOOK.md)                           | SOS handling, outages, payments, security incidents                 |
+| [TASKS](docs/TASKS.md)                               | Phase-by-phase checklist                                            |

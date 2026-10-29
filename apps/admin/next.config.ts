@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { join } from 'node:path';
 
 /** Strict headers: the dashboard loads nothing from third parties. */
 const securityHeaders = [
@@ -24,6 +25,8 @@ const securityHeaders = [
 
 const config: NextConfig = {
   output: 'standalone',
+  // Trace files from the monorepo root so workspace packages are included.
+  outputFileTracingRoot: join(__dirname, '../../'),
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ['@saheli/api-client'],

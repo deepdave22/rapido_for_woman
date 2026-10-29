@@ -61,10 +61,18 @@ describe('staff authentication', () => {
       .post('/v1/admin/auth/mfa/verify')
       .send({ challengeToken: again.body.challengeToken, code: '000000' })
       .expect(401);
-    const code = totpAt(base32Decode(s.totpSecret), Date.now() / 1000);
+    // The enrollment code was already used; a replay of it is refused.
+    const used = totpAt(base32Decode(s.totpSecret), Date.now() / 1000);
+    const replay = await ctx.http
+      .post('/v1/admin/auth/mfa/verify')
+      .send({ challengeToken: again.body.challengeToken, code: used })
+      .expect(401);
+    expect(replay.body.error.code).toBe('MFA_CODE_ALREADY_USED');
+    // The next code (within the drift window) works once.
+    const next = totpAt(base32Decode(s.totpSecret), Date.now() / 1000 + 30);
     await ctx.http
       .post('/v1/admin/auth/mfa/verify')
-      .send({ challengeToken: again.body.challengeToken, code })
+      .send({ challengeToken: again.body.challengeToken, code: next })
       .expect(200);
 
     const refreshed = await ctx.http
@@ -167,16 +175,13 @@ describe('driver review', () => {
     const d = await login(ctx, testPhone(5), 'DRIVER');
     const dAuth = bearer(d.accessToken);
     await ctx.http.patch('/v1/me').set(dAuth).send({ fullName: 'Kavya Nair' });
-    await ctx.http
-      .put('/v1/driver/vehicle')
-      .set(dAuth)
-      .send({
-        categoryCode: 'BIKE',
-        registrationNumber: 'KA05XY0001',
-        make: 'TVS',
-        model: 'Jupiter',
-        colour: 'Blue',
-      });
+    await ctx.http.put('/v1/driver/vehicle').set(dAuth).send({
+      categoryCode: 'BIKE',
+      registrationNumber: 'KA05XY0001',
+      make: 'TVS',
+      model: 'Jupiter',
+      colour: 'Blue',
+    });
     const ob = await ctx.http.get('/v1/driver/onboarding').set(dAuth);
     for (const type of ob.body.requiredDocuments as string[]) {
       await ctx.http

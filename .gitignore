@@ -19,3 +19,4 @@ Thumbs.db
 .expo-export-check/
 expo-env.d.ts
 next-env.d.ts
+infra/full.env

@@ -27,8 +27,8 @@ import {
   newTotpSecret,
   otpauthUri,
   passwordProblem,
+  matchTotpStep,
   verifyPassword,
-  verifyTotp,
 } from './staff-crypto';
 
 export type StaffRole = 'SUPER_ADMIN' | 'OPERATIONS' | 'SUPPORT' | 'FINANCE' | 'SAFETY';
@@ -120,9 +120,24 @@ export class StaffAuthService {
       throw new AppError(423, 'ACCOUNT_LOCKED', 'Too many attempts. Try again later');
     }
     const secret = decryptField(this.env.dataEncryptionKey, staff.totpSecretEncrypted);
-    if (!verifyTotp(secret, code)) {
+    const step = matchTotpStep(secret, code);
+    if (step === null) {
       await this.recordFailure(staff.id, staff.failedLoginCount, client, 'mfa');
       throw new AppError(401, 'MFA_INVALID', 'The code is incorrect');
+    }
+    // Each code works once: claim its time step atomically.
+    const claimed = await this.db
+      .update(staffUsers)
+      .set({ totpLastStep: step })
+      .where(
+        and(
+          eq(staffUsers.id, staff.id),
+          sql`(${staffUsers.totpLastStep} IS NULL OR ${staffUsers.totpLastStep} < ${step})`,
+        ),
+      )
+      .returning({ id: staffUsers.id });
+    if (!claimed.length) {
+      throw new AppError(401, 'MFA_CODE_ALREADY_USED', 'Wait for a new code and try again');
     }
     const refreshToken = randomToken();
     const [session] = await this.db

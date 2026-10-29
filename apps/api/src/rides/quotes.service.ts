@@ -35,8 +35,10 @@ export class QuotesService {
     if (haversineMeters(dto.pickup, dto.dropoff) < MIN_TRIP_METERS) {
       throw new AppError(422, 'TRIP_TOO_SHORT', 'Pickup and drop are too close together');
     }
-    const zone = await this.pricing.findZone(dto.pickup);
-    const dropZone = await this.pricing.findZone(dto.dropoff);
+    const [zone, dropZone] = await Promise.all([
+      this.pricing.findZone(dto.pickup),
+      this.pricing.findZone(dto.dropoff),
+    ]);
     if (!zone || !dropZone || zone.id !== dropZone.id) {
       throw new AppError(422, 'OUTSIDE_SERVICE_AREA', 'We do not serve this trip yet');
     }
@@ -49,62 +51,66 @@ export class QuotesService {
       ? await this.promotions.findRedeemable(dto.promoCode, passengerId)
       : null;
 
-    const nearby = await this.nearbyDrivers(dto.pickup);
+    const [nearby, rules] = await Promise.all([
+      this.nearbyDrivers(dto.pickup),
+      this.pricing.currentRulesForZone(zone.id),
+    ]);
     const expiresAt = new Date(Date.now() + this.env.QUOTE_TTL_SECONDS * 1000);
-    const options = [];
-    for (const category of await this.pricing.activeCategories()) {
-      const rule = await this.pricing.currentRule(zone.id, category.code);
-      if (!rule) continue;
-      const undiscounted = calculateFare({
+    const priced = rules.map(({ rule, displayName, seats }) => {
+      const fareInput = {
         rule: toDomainRule(rule),
         distanceMeters: route.distanceMeters,
         durationSeconds: route.durationSeconds,
-      });
+      };
+      const undiscounted = calculateFare(fareInput);
       const discountPaise = promo
         ? this.promotions.discountFor(promo, undiscounted.rideFarePaise)
         : 0;
       const breakdown = discountPaise
-        ? calculateFare({
-            rule: toDomainRule(rule),
-            distanceMeters: route.distanceMeters,
-            durationSeconds: route.durationSeconds,
-            discountPaise,
-          })
+        ? calculateFare({ ...fareInput, discountPaise })
         : undiscounted;
-      const [row] = await this.db
-        .insert(fareQuotes)
-        .values({
-          passengerId,
-          zoneId: zone.id,
-          categoryCode: category.code,
-          pricingRuleId: rule.id,
-          pickup: { lat: dto.pickup.lat, lng: dto.pickup.lng },
-          pickupAddress: dto.pickup.address,
-          dropoff: { lat: dto.dropoff.lat, lng: dto.dropoff.lng },
-          dropoffAddress: dto.dropoff.address,
-          distanceMeters: route.distanceMeters,
-          durationSeconds: route.durationSeconds,
-          routeProvider: route.provider,
-          promotionId: discountPaise ? promo!.id : null,
-          breakdown,
-          totalPaise: breakdown.totalPaise,
-          expiresAt,
-        })
-        .returning({ id: fareQuotes.id });
-      const nearest = nearby.get(category.code);
-      options.push({
-        quoteId: row!.id,
-        categoryCode: category.code,
-        displayName: category.displayName,
-        seats: category.seats,
-        totalPaise: breakdown.totalPaise,
-        breakdown,
+      return { rule, displayName, seats, breakdown, discountPaise };
+    });
+    // One insert for all options.
+    const inserted = priced.length
+      ? await this.db
+          .insert(fareQuotes)
+          .values(
+            priced.map((x) => ({
+              passengerId,
+              zoneId: zone.id,
+              categoryCode: x.rule.categoryCode,
+              pricingRuleId: x.rule.id,
+              pickup: { lat: dto.pickup.lat, lng: dto.pickup.lng },
+              pickupAddress: dto.pickup.address,
+              dropoff: { lat: dto.dropoff.lat, lng: dto.dropoff.lng },
+              dropoffAddress: dto.dropoff.address,
+              distanceMeters: route.distanceMeters,
+              durationSeconds: route.durationSeconds,
+              routeProvider: route.provider,
+              promotionId: x.discountPaise ? promo!.id : null,
+              breakdown: x.breakdown,
+              totalPaise: x.breakdown.totalPaise,
+              expiresAt,
+            })),
+          )
+          .returning({ id: fareQuotes.id, categoryCode: fareQuotes.categoryCode })
+      : [];
+    const options = priced.map((x) => {
+      const nearest = nearby.get(x.rule.categoryCode);
+      return {
+        quoteId: inserted.find((r) => r.categoryCode === x.rule.categoryCode)!.id,
+        categoryCode: x.rule.categoryCode,
+        displayName: x.displayName,
+        seats: x.seats,
+        totalPaise: x.breakdown.totalPaise,
+        breakdown: x.breakdown,
         expiresAt,
         driversNearby: nearest !== undefined,
         pickupEtaSeconds:
           nearest !== undefined ? Math.max(60, Math.round(nearest / PICKUP_SPEED_MPS)) : null,
-      });
-    }
+      };
+    });
     if (!options.length) {
       throw new AppError(422, 'NO_SERVICE_AVAILABLE', 'No ride types are available here right now');
     }

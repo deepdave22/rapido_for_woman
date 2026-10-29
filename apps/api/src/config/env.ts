@@ -122,6 +122,10 @@ export class Env {
   @IsIn(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
   LOG_LEVEL = 'info';
 
+  /** Human-readable logs (needs the pino-pretty dev dependency). Off by default: JSON logs. */
+  @Transform(({ value }) => value === true || value === 'true')
+  LOG_PRETTY = false;
+
   /** `estimate` = straight-line distance × road factor. Development only. */
   @IsIn(MAPS_PROVIDERS)
   MAPS_PROVIDER: MapsProvider = 'estimate';
@@ -211,6 +215,20 @@ export class Env {
   /** Public base for trip-share links, e.g. https://saheli.in/t/ (token is appended). */
   @IsUrl({ require_tld: false })
   SHARE_LINK_BASE_URL = 'http://localhost:3000/v1/public/trips/';
+
+  /** How often retention and expiry housekeeping runs. 0 disables it (tests drive it). */
+  @Transform(toInt)
+  @IsInt()
+  @Min(0)
+  @Max(86_400_000)
+  MAINTENANCE_INTERVAL_MS = 3_600_000;
+
+  /** Days to keep in-ride location breadcrumbs. Confirm with counsel (LAUNCH_BLOCKERS L8). */
+  @Transform(toInt)
+  @IsInt()
+  @Min(1)
+  @Max(3650)
+  RETENTION_LOCATION_DAYS = 90;
 
   get dispatchRadii(): number[] {
     return this.DISPATCH_RADII_METERS.split(',').map(Number);

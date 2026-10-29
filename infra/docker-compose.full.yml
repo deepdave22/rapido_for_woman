@@ -1,0 +1,65 @@
+# Whole stack from production images, for local verification and as a deployment template.
+# Usage (from repo root):
+#   docker compose -f infra/docker-compose.full.yml --env-file infra/full.env up --build
+# Development-only providers are used here; staging/production must set real ones (see docs/DEPLOYMENT.md).
+name: saheli-full
+
+x-api-env: &api-env
+  NODE_ENV: development
+  DATABASE_URL: postgres://saheli:saheli_local_only@postgres:5432/saheli
+  REDIS_URL: redis://redis:6379
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+  HASH_PEPPER: ${HASH_PEPPER}
+  DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY}
+  OTP_PROVIDER: console
+  STORAGE_LOCAL_DIR: /tmp/storage
+  CORS_ORIGINS: http://localhost:3001
+  TRUST_PROXY_HOPS: '1'
+
+services:
+  postgres:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: saheli
+      POSTGRES_PASSWORD: saheli_local_only
+      POSTGRES_DB: saheli
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U saheli -d saheli']
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 20
+
+  migrate:
+    build: { context: .., dockerfile: apps/api/Dockerfile }
+    environment: *api-env
+    command: ['node', 'dist/database/migrate.js']
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: 'no'
+
+  api:
+    build: { context: .., dockerfile: apps/api/Dockerfile }
+    environment: *api-env
+    ports: ['127.0.0.1:3000:3000']
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  admin:
+    build: { context: .., dockerfile: apps/admin/Dockerfile }
+    environment:
+      SAHELI_API_URL: http://api:3000
+    ports: ['127.0.0.1:3001:3001']
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  pgdata:

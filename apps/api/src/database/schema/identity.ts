@@ -44,7 +44,11 @@ export const users = pgTable(
   },
   (t) => [
     uniqueIndex('users_phone_uq').on(t.phoneE164),
-    check('users_phone_e164_ck', sql`${t.phoneE164} ~ '^\\+91[6-9][0-9]{9}$'`),
+    // Deleted accounts keep their row (rides stay attributable) but lose the phone number.
+    check(
+      'users_phone_e164_ck',
+      sql`${t.phoneE164} ~ '^\\+91[6-9][0-9]{9}$' OR (${t.status} = 'DELETED' AND ${t.phoneE164} LIKE 'deleted:%')`,
+    ),
   ],
 );
 
@@ -159,6 +163,8 @@ export const staffUsers = pgTable(
     /** TOTP secret, encrypted with the app's data-encryption key. */
     totpSecretEncrypted: text(),
     mfaEnrolledAt: timestamp({ withTimezone: true }),
+    /** Last accepted TOTP time step; codes at or before it are refused (replay protection). */
+    totpLastStep: integer(),
     status: staffStatus().notNull().default('ACTIVE'),
     failedLoginCount: integer().notNull().default(0),
     lockedUntil: timestamp({ withTimezone: true }),

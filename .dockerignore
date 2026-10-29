@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+**/.next
+**/.expo
+**/.storage
+**/.storage-test
+**/coverage
+.expo-export-check
+.git
+**/.env
+**/.env.*
+!**/.env.example
+*.log

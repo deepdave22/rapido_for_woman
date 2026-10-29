@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import type Redis from 'ioredis';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
@@ -8,6 +9,7 @@ import { AdminModule } from './admin/admin.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { AllExceptionsFilter } from './common/errors';
+import { RedisThrottlerStorage } from './common/redis-throttler-storage';
 import { IdempotencyInterceptor } from './common/idempotency/idempotency';
 import { ConfigModule } from './config/config.module';
 import { Env } from './config/env';
@@ -19,7 +21,8 @@ import { RidesModule } from './rides/rides.module';
 import { SafetyModule } from './safety/safety.module';
 import { HealthController } from './health/health.controller';
 import { PlacesController } from './places/places.controller';
-import { RedisModule } from './redis/redis.module';
+import { MaintenanceModule } from './maintenance/maintenance.module';
+import { REDIS, RedisModule } from './redis/redis.module';
 import { UsersController } from './users/users.controller';
 
 const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
@@ -52,18 +55,18 @@ const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
           autoLogging: {
             ignore: (req: IncomingMessage) => req.url?.startsWith('/health') ?? false,
           },
-          transport:
-            env.NODE_ENV === 'development'
-              ? { target: 'pino-pretty', options: { singleLine: true } }
-              : undefined,
+          transport: env.LOG_PRETTY
+            ? { target: 'pino-pretty', options: { singleLine: true } }
+            : undefined,
         },
       }),
     }),
-    // In-memory per-instance limits. Move storage to Redis before running more than one instance.
+    // Counters live in Redis so limits hold across every API instance.
     ThrottlerModule.forRootAsync({
-      inject: [Env],
-      useFactory: (env: Env) => ({
+      inject: [Env, REDIS],
+      useFactory: (env: Env, redis: Redis) => ({
         throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
+        storage: new RedisThrottlerStorage(redis),
         // Tests share one IP; OTP abuse limits stored in Postgres still apply.
         skipIf: () => env.NODE_ENV === 'test',
       }),
@@ -78,6 +81,7 @@ const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     PaymentsModule,
     SafetyModule,
     AdminModule,
+    MaintenanceModule,
   ],
   controllers: [HealthController, UsersController, PlacesController],
   providers: [

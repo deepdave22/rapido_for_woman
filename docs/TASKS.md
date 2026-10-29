@@ -77,10 +77,18 @@ covered by tests that were actually run.
 - [ ] QR code for TOTP enrolment (today: copy the key into the authenticator)
 - [ ] Map view for live rides (today: coordinates linking to Google Maps)
 
-## Phase 6: Hardening
+## Phase 6: Hardening and launch preparation ✅ (engineering scope)
 
-- [ ] Playwright E2E for admin; mobile E2E strategy (Maestro or Detox)
-- [ ] Load tests: booking, dispatch, location ingest, WebSocket fan-out
-- [ ] Security review, dependency scanning, OWASP API checks
-- [ ] Staging deploy, backups with a tested restore, monitoring and alerting, runbooks
-- [ ] Data retention jobs (location points, OTP challenges, expired sessions)
+- [x] TOTP replay protection; rate-limit counters in Redis (shared across instances)
+- [x] Retention jobs (OTP, sessions, idempotency, share links, ride breadcrumbs) and document-expiry enforcement
+- [x] Data export and account deletion (anonymisation; blocked while rides, payments or balances are open)
+- [x] Load test with correctness assertions under concurrency; quote path batched (burst latency halved) — docs/PERFORMANCE.md
+- [x] Production Dockerfiles (multi-stage, non-root, health checks); whole stack verified from images
+- [x] Backup and restore drill (pg_dump/pg_restore, counts and triggers verified) — docs/DEPLOYMENT.md
+- [x] CI: Docker image builds, CodeQL, Dependabot
+- [x] Deployment and rollback guide, security and privacy checklist, runbook, production-readiness assessment
+- [ ] Staging environment on real infrastructure; sustained load test there
+- [ ] Error tracking, metrics dashboards and alerting (incl. paging for SOS)
+- [ ] External penetration test
+- [ ] Mobile end-to-end tests (Maestro/Detox) on real devices
+- [ ] Playwright end-to-end tests for the admin dashboard (today: API-level tests and a live smoke test)

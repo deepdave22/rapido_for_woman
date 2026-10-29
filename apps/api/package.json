@@ -13,7 +13,8 @@
     "db:migrate": "tsx src/database/migrate.ts",
     "db:seed": "tsx src/database/seed.ts",
     "postdb:generate": "node scripts/unquote-postgis-types.mjs",
-    "admin:create": "tsx src/admin/create-staff.ts"
+    "admin:create": "tsx src/admin/create-staff.ts",
+    "test:perf": "vitest run --project perf"
   },
   "dependencies": {
     "@nestjs/common": "11.2.8",

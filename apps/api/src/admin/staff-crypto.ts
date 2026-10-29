@@ -106,15 +106,23 @@ export function totpAt(secret: Buffer, unixSeconds: number, digits = 6): string 
   return String(code).padStart(digits, '0');
 }
 
-/** Accepts the current step and one either side (clock drift). */
-export function verifyTotp(secretBase32: string, code: string, now = Date.now()): boolean {
-  if (!/^\d{6}$/.test(code)) return false;
+/**
+ * Accepts the current step and one either side (clock drift). Returns the
+ * matched time step so callers can refuse a code that was already used.
+ */
+export function matchTotpStep(secretBase32: string, code: string, now = Date.now()): number | null {
+  if (!/^\d{6}$/.test(code)) return null;
   const secret = base32Decode(secretBase32);
   const t = Math.floor(now / 1000);
-  return [-30, 0, 30].some((delta) => {
+  for (const delta of [-30, 0, 30]) {
     const expected = Buffer.from(totpAt(secret, t + delta));
-    return timingSafeEqual(expected, Buffer.from(code));
-  });
+    if (timingSafeEqual(expected, Buffer.from(code))) return Math.floor((t + delta) / 30);
+  }
+  return null;
+}
+
+export function verifyTotp(secretBase32: string, code: string, now = Date.now()): boolean {
+  return matchTotpStep(secretBase32, code, now) !== null;
 }
 
 export function newTotpSecret(): string {

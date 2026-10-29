@@ -26,6 +26,20 @@ export default defineConfig({
           hookTimeout: 60000,
         },
       },
+      {
+        plugins,
+        test: {
+          name: 'perf',
+          include: ['test/**/*.perf.test.ts'],
+          globals: true,
+          setupFiles: ['test/setup-env.ts'],
+          globalSetup: ['test/global-setup.ts'],
+          pool: 'forks',
+          poolOptions: { forks: { singleFork: true } },
+          testTimeout: 300000,
+          hookTimeout: 300000,
+        },
+      },
     ],
   },
 });
