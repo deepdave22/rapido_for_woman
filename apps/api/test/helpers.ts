@@ -8,6 +8,7 @@ import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
 import { InMemoryOtpSender, OTP_SENDER } from '../src/auth/otp/otp-sender';
 import { DB, Database } from '../src/database/database.module';
+import { NotificationsService } from '../src/notifications/notifications.service';
 import {
   driverDocuments,
   driverProfiles,
@@ -41,6 +42,7 @@ export async function createTestApp(): Promise<TestContext> {
   });
   configureApp(app);
   await app.init();
+  pendingWork = () => app.get(NotificationsService).settled();
   return {
     app,
     http: request(app.getHttpServer()),
@@ -50,8 +52,12 @@ export async function createTestApp(): Promise<TestContext> {
   };
 }
 
+/** Background work (pushes) from the previous test, which must finish before tables are emptied. */
+let pendingWork: () => Promise<void> = async () => undefined;
+
 /** Empties every application table between tests. */
 export async function resetDatabase(db: Database): Promise<void> {
+  await pendingWork();
   const { rows } = await db.execute<{ tablename: string }>(sql`
     SELECT tablename FROM pg_tables
     WHERE schemaname = 'public' AND tablename <> 'spatial_ref_sys'`);

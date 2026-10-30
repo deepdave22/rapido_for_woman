@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { BeforeApplicationShutdown, Inject, Injectable, Logger } from '@nestjs/common';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { AuthUser, ClientApp } from '../auth/auth.decorators';
 import { DB, Database, Tx } from '../database/database.module';
@@ -36,8 +36,10 @@ export type DeliveryResult = { id: string; outcome: DeliveryOutcome; reason?: st
  * the configured push sender, or is recorded as SKIPPED when there is none.
  */
 @Injectable()
-export class NotificationsService {
+export class NotificationsService implements BeforeApplicationShutdown {
   private readonly logger = new Logger('Notifications');
+  /** Pushes are fire-and-forget for callers; track them so shutdown can let them finish. */
+  private readonly inFlight = new Set<Promise<unknown>>();
 
   constructor(
     @Inject(DB) private readonly db: Database,
@@ -73,6 +75,26 @@ export class NotificationsService {
    * SENT means the push service accepted it; delivery to the phone is not confirmed.
    */
   async push(notice: PushNotice): Promise<DeliveryResult> {
+    const delivery = this.deliverPush(notice);
+    this.inFlight.add(delivery);
+    try {
+      return await delivery;
+    } finally {
+      this.inFlight.delete(delivery);
+    }
+  }
+
+  /** Resolves once no push is in progress (pushes started meanwhile are awaited too). */
+  async settled(): Promise<void> {
+    while (this.inFlight.size) await Promise.allSettled([...this.inFlight]);
+  }
+
+  /** Runs before the database pool closes (PoolCloser uses onApplicationShutdown). */
+  async beforeApplicationShutdown(): Promise<void> {
+    await this.settled();
+  }
+
+  private async deliverPush(notice: PushNotice): Promise<DeliveryResult> {
     const [row] = await this.db
       .insert(notifications)
       .values({
