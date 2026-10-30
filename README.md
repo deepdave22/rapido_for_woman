@@ -60,8 +60,12 @@ cp apps/passenger/.env.example apps/passenger/.env   # set EXPO_PUBLIC_API_URL
 cd apps/passenger && npx expo run:android            # development build (needs Android SDK)
 ```
 
-The driver app works the same way from `apps/driver`. To approve a test driver before the
-admin dashboard exists, see the `approvedDriver` fixture in `apps/api/test/helpers.ts`.
+The driver app works the same way from `apps/driver`. Approve test drivers in the admin
+dashboard (Drivers), or see the `approvedDriver` fixture in `apps/api/test/helpers.ts`.
+
+Store builds (`.aab` for Google Play, `.ipa` for App Store Connect) are made with EAS Build:
+see [MOBILE_RELEASE](docs/MOBILE_RELEASE.md) for accounts, signing, building, TestFlight and
+Play testing, listings and privacy disclosures.
 
 ## Tests
 
@@ -102,6 +106,7 @@ Commit the generated SQL. CI fails if the schema and migrations disagree.
 | [ARCHITECTURE](docs/ARCHITECTURE.md)                 | System diagram, invariants, ride lifecycle, ER diagram              |
 | [DECISIONS](docs/DECISIONS.md)                       | Architecture decision records                                       |
 | [DEPLOYMENT](docs/DEPLOYMENT.md)                     | Environments, release, migrations, rollback, backups, costs         |
+| [MOBILE_RELEASE](docs/MOBILE_RELEASE.md)             | Android/iOS store builds, signing, testing, listings, privacy       |
 | [SECURITY_PRIVACY](docs/SECURITY_PRIVACY.md)         | Security and DPDP checklist                                         |
 | [PERFORMANCE](docs/PERFORMANCE.md)                   | Targets and load-test results                                       |
 | [RUNBOOK](docs/RUNBOOK.md)                           | SOS handling, outages, payments, security incidents                 |

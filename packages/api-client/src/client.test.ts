@@ -117,6 +117,19 @@ describe('SaheliClient', () => {
 });
 
 describe('formatting', () => {
+  it('clears stored tokens after deleting the account, but keeps them if deletion fails', async () => {
+    const ok = client((async () => json(200, { deleted: true })) as unknown as typeof fetch);
+    await ok.c.deleteAccount();
+    expect(ok.tokens.value).toBeNull();
+
+    const refused = client((async () =>
+      json(409, {
+        error: { code: 'ACTIVE_RIDE', message: 'Finish your ride first' },
+      })) as unknown as typeof fetch);
+    await expect(refused.c.deleteAccount()).rejects.toMatchObject({ code: 'ACTIVE_RIDE' });
+    expect(refused.tokens.value).not.toBeNull();
+  });
+
   it('formats distance and duration', () => {
     expect(formatDistance(4890)).toBe('4.9 km');
     expect(formatDistance(812)).toBe('810 m');

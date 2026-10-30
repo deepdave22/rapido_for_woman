@@ -31,6 +31,24 @@ const secureTokenStore = {
   },
 };
 
+/**
+ * An API client backed by the secure token store. Also used outside React,
+ * e.g. by the driver's background location task, which shares the same session.
+ */
+export function createApiClient(opts: {
+  app: ClientApp;
+  apiUrl: string;
+  onSignedOut?: () => void;
+}): SaheliClient {
+  return new SaheliClient({
+    baseUrl: opts.apiUrl,
+    app: opts.app,
+    tokens: secureTokenStore,
+    newIdempotencyKey: () => Crypto.randomUUID(),
+    onSignedOut: opts.onSignedOut,
+  });
+}
+
 type AuthState = { status: 'loading' } | { status: 'signedOut' } | { status: 'signedIn'; me: Me };
 
 interface AuthContextValue {
@@ -55,14 +73,7 @@ export function AuthProvider({
   const signedOut = useRef(() => setState({ status: 'signedOut' }));
 
   const api = useMemo(
-    () =>
-      new SaheliClient({
-        baseUrl: apiUrl,
-        app,
-        tokens: secureTokenStore,
-        newIdempotencyKey: () => Crypto.randomUUID(),
-        onSignedOut: () => signedOut.current(),
-      }),
+    () => createApiClient({ app, apiUrl, onSignedOut: () => signedOut.current() }),
     [apiUrl, app],
   );
 

@@ -4,6 +4,7 @@ import { and, eq, gt, lte, sql } from 'drizzle-orm';
 import { AppError } from '../common/errors';
 import { Env } from '../config/env';
 import { DB, Database, Tx } from '../database/database.module';
+import { NotificationsService, PushNotice } from '../notifications/notifications.service';
 import { driverAvailability, fareQuotes, rideAssignments, rides, users } from '../database/schema';
 import { geoPoint, PricingService } from '../pricing/pricing.service';
 import { RealtimeService } from '../realtime/realtime.gateway';
@@ -48,6 +49,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     private readonly state: RideStateService,
     private readonly realtime: RealtimeService,
     private readonly pricing: PricingService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   onModuleInit(): void {
@@ -114,6 +116,14 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     if (outcome?.kind === 'offer') {
       const view = await this.buildOfferView(outcome.offer.assignmentId);
       this.realtime.toUser(outcome.offer.driverId, 'offer.created', view);
+      this.push({
+        userId: outcome.offer.driverId,
+        app: 'DRIVER',
+        template: 'ride_offer',
+        title: 'New ride request',
+        body: `Open Saheli Driver to accept within ${this.env.DISPATCH_OFFER_TIMEOUT_SECONDS} seconds.`,
+        path: '/',
+      });
     } else if (outcome?.kind === 'ended') {
       this.notifyRide(outcome.result);
     }
@@ -384,5 +394,55 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         this.realtime.toUser(driverId, 'offer.withdrawn', { rideId: ride.id, reason: ride.status });
       }
     }
+    const notice = rideStatusPush(ride);
+    if (notice) this.push(notice);
+  }
+
+  /** Push is a nudge on top of realtime: it never blocks or fails the ride flow. */
+  private push(notice: PushNotice): void {
+    void this.notifications.push(notice).catch((err: unknown) => {
+      this.logger.warn({ err, template: notice.template }, 'Push notification failed');
+    });
+  }
+}
+
+/** Lock-screen text for the ride changes worth interrupting someone for. No personal details. */
+function rideStatusPush(ride: RideRow): PushNotice | null {
+  const toPassenger = (template: string, title: string, body: string): PushNotice => ({
+    userId: ride.passengerId,
+    app: 'PASSENGER',
+    template,
+    title,
+    body,
+    path: `/ride/${ride.id}`,
+  });
+  switch (ride.status) {
+    case 'DRIVER_ASSIGNED':
+      return toPassenger('ride_driver_assigned', 'Driver assigned', 'Your driver is on the way.');
+    case 'DRIVER_ARRIVED':
+      return toPassenger(
+        'ride_driver_arrived',
+        'Your driver has arrived',
+        'Check the vehicle number before you share your PIN.',
+      );
+    case 'NO_DRIVER_FOUND':
+      return toPassenger(
+        'ride_no_driver',
+        'No driver available',
+        'We could not find a driver nearby. Please try again.',
+      );
+    case 'CANCELLED':
+      return ride.driverId && ride.cancelledBy !== 'DRIVER'
+        ? {
+            userId: ride.driverId,
+            app: 'DRIVER',
+            template: 'ride_cancelled',
+            title: 'Ride cancelled',
+            body: 'Your current ride was cancelled.',
+            path: '/',
+          }
+        : null;
+    default:
+      return null;
   }
 }

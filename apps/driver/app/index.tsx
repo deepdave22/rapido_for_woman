@@ -20,7 +20,7 @@ import { API_URL } from '../src/config';
 import { useLocationSharing } from '../src/useLocationSharing';
 
 export default function DriverHome() {
-  const { api, signOut } = useAuth();
+  const { api } = useAuth();
   const me = useMe();
   const [online, setOnline] = useState(false);
   const [offer, setOffer] = useState<Offer | null>(null);
@@ -141,11 +141,13 @@ export default function DriverHome() {
         </Row>
         <Muted>
           {online
-            ? location.state === 'on'
-              ? 'Sharing your location. Keep the app open to receive rides.'
-              : location.state === 'denied'
-                ? 'Location permission is off. Turn it on to receive rides.'
-                : 'Getting your location…'
+            ? location.state === 'background'
+              ? 'Sharing your location, including when the app is in the background.'
+              : location.state === 'foreground'
+                ? 'Sharing your location while the app is open. Allow location "all the time" in Settings to keep receiving rides with the screen off.'
+                : location.state === 'denied'
+                  ? 'Location permission is off. Turn it on to receive rides.'
+                  : 'Getting your location…'
             : 'Go online to start receiving ride requests.'}
         </Muted>
         {location.lastError ? <Muted>{location.lastError}</Muted> : null}
@@ -196,7 +198,12 @@ export default function DriverHome() {
         </Card>
       ) : null}
 
-      <Button title="Sign out" variant="ghost" onPress={signOut} disabled={online} />
+      <Button
+        title="Account"
+        variant="ghost"
+        onPress={() => router.push('/account')}
+        disabled={online}
+      />
       <Muted>In an emergency, call 112.</Muted>
     </Screen>
   );

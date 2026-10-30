@@ -92,3 +92,16 @@ covered by tests that were actually run.
 - [ ] External penetration test
 - [ ] Mobile end-to-end tests (Maestro/Detox) on real devices
 - [ ] Playwright end-to-end tests for the admin dashboard (today: API-level tests and a live smoke test)
+
+## Phase 7: Store-ready mobile apps ✅ (configuration; builds need accounts)
+
+- [x] Android package / iOS bundle IDs, icons, adaptive and themed icons, splash screens
+- [x] Minimal permissions per app; iOS background mode `location` (driver) only
+- [x] Push notifications: device registration API, Expo push sender, ride-event pushes, tap-to-open
+- [x] Driver background location (foreground service, Play prominent disclosure)
+- [x] In-app account deletion (store requirement); deep links (schemes; optional App/Universal Links)
+- [x] EAS Build and Submit profiles; release builds refuse non-https APIs — docs/MOBILE_RELEASE.md
+- [ ] (owner) Expo, Google Play and Apple accounts; first `.aab` / `.ipa` builds and submission
+- [ ] Reviewer sign-in method; store listings, screenshots, Data safety / App Privacy forms
+- [ ] Device testing on low-end Android and iPhone; TestFlight and Play closed testing
+- [ ] Data export screen in the apps; push delivery receipts

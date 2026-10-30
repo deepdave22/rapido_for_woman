@@ -35,7 +35,12 @@ Secrets come from the platform's secret manager, never from files in the image o
 Required in every deployed environment: `DATABASE_URL`, `REDIS_URL`, `JWT_ACCESS_SECRET`,
 `HASH_PEPPER`, `DATA_ENCRYPTION_KEY`, `OTP_PROVIDER` (real), `MAPS_PROVIDER=google` with
 `GOOGLE_MAPS_API_KEY`, `STORAGE_PROVIDER=s3`, `PAYMENT_PROVIDER=razorpay` with its three keys,
-`SHARE_LINK_BASE_URL` (https), `CORS_ORIGINS`, `TRUST_PROXY_HOPS` (match the load balancer).
+`SHARE_LINK_BASE_URL` (https), `CORS_ORIGINS`, `TRUST_PROXY_HOPS` (match the load balancer),
+`PUSH_PROVIDER=expo` (plus `EXPO_ACCESS_TOKEN` if the Expo project enforces it).
+Optional: `ANDROID_APP_LINK_SHA256` and `IOS_TEAM_ID` to serve the app-link verification files.
+
+The mobile apps are released separately from the API, through the stores: see MOBILE_RELEASE.md.
+Keep the API backwards compatible with the app versions still installed on phones.
 
 Rotate `JWT_ACCESS_SECRET` to sign everyone out. Never rotate `HASH_PEPPER` or
 `DATA_ENCRYPTION_KEY` without a migration: stored hashes and encrypted TOTP secrets depend on them.

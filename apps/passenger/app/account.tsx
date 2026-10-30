@@ -3,6 +3,7 @@ import {
   Banner,
   Button,
   Card,
+  DeleteAccountCard,
   Muted,
   Row,
   Screen,
@@ -76,7 +77,8 @@ export default function Account() {
           </Row>
         ))}
       </Card>
-      <Button title="Sign out" variant="danger" onPress={signOut} />
+      <Button title="Sign out" variant="secondary" onPress={signOut} />
+      <DeleteAccountCard consequences="Your profile, saved places and trusted contacts are deleted and you are signed out everywhere. Ride and payment records are kept in anonymised form where the law requires it. This cannot be undone." />
     </Screen>
   );
 }

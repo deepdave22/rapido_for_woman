@@ -121,6 +121,24 @@ export class SaheliClient {
     return this.request('/v1/me');
   }
 
+  /** Registers this device for ride notifications (Expo push token). */
+  registerPushToken(token: string, platform: 'ANDROID' | 'IOS'): Promise<void> {
+    return this.request('/v1/me/push-token', { method: 'PUT', body: { token, platform } });
+  }
+
+  removePushToken(token: string): Promise<void> {
+    return this.request('/v1/me/push-token', { method: 'DELETE', body: { token } });
+  }
+
+  /**
+   * Permanently deletes the account (ride and payment records are kept
+   * anonymised). The session ends with it, so stored tokens are cleared.
+   */
+  async deleteAccount(): Promise<void> {
+    await this.request('/v1/me/delete', { method: 'POST', body: { confirm: 'DELETE' } });
+    await this.opts.tokens.clear();
+  }
+
   updateMe(changes: {
     fullName?: string;
     email?: string;

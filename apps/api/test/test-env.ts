@@ -12,6 +12,7 @@ export const TEST_ENV: Record<string, string> = {
   JWT_ACCESS_SECRET: 'test-only-jwt-secret-0123456789abcdef',
   HASH_PEPPER: 'test-only-hash-pepper-0123456789abcdef',
   OTP_PROVIDER: 'memory',
+  PUSH_PROVIDER: 'memory',
   OTP_RESEND_COOLDOWN_SECONDS: '0',
   OTP_MAX_SENDS_PER_PHONE_PER_HOUR: '5',
   // Tests drive the dispatch sweeper explicitly.

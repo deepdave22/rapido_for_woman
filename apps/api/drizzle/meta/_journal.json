@@ -36,6 +36,20 @@
       "when": 1793311884615,
       "tag": "0004_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793336707911,
+      "tag": "0005_push_token_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793336717058,
+      "tag": "0006_push_token_drop_session_row",
+      "breakpoints": true
     }
   ]
 }

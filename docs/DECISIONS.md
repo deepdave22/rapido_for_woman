@@ -145,3 +145,22 @@ for authorisation (the API), so the dashboard has no business logic to get wrong
 (verified against the RFC test vectors), instead of argon2 and otplib.
 **Why:** It avoids native build steps on Windows and in CI, and avoids an unmaintained OTP
 dependency. The code is small and fully unit-tested.
+
+## ADR-019 Store builds with EAS; push through the Expo push service
+
+**Decision:** Build and submit both apps with EAS Build / EAS Submit (one EAS project per app,
+`eas.json` in each app folder, build numbers kept remotely). Send push notifications through
+the Expo push service using Expo push tokens, behind a `PushSender` interface
+(`PUSH_PROVIDER=none|expo`).
+**Why:** EAS builds Android and iOS in the cloud, so iOS builds do not need a Mac in the team,
+and it manages signing credentials. The Expo push service relays to FCM and APNs with one
+token format and one HTTP call, and needs no Firebase Admin SDK on the server.
+**Consequences:**
+
+- The Expo account becomes a dependency for builds and push; use an organisation account and
+  back up the Android upload keystore. Moving off Expo push later only means a new
+  `PushSender` and native token registration.
+- Push tokens are tied to the sign-in session: the API stops sending as soon as the session is
+  revoked or expires, so a shared or resold phone does not receive someone else's ride updates.
+- Push is a nudge on top of realtime events. It never blocks or fails the ride flow, and
+  lock-screen text carries no names, numbers or addresses.

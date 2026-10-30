@@ -118,6 +118,10 @@ export const sessions = pgTable(
   ],
 );
 
+/**
+ * An Expo push token for one signed-in device. Tied to the session family, so
+ * pushes stop as soon as that sign-in is revoked or expires.
+ */
 export const pushTokens = pgTable(
   'push_tokens',
   {
@@ -125,14 +129,17 @@ export const pushTokens = pgTable(
     userId: uuid()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    sessionId: uuid().references(() => sessions.id, { onDelete: 'cascade' }),
+    sessionFamilyId: uuid().notNull(),
+    app: clientApp().notNull(),
     platform: pushPlatform().notNull(),
     token: text().notNull(),
     createdAt: createdAt(),
+    updatedAt: updatedAt(),
   },
   (t) => [
     uniqueIndex('push_tokens_token_uq').on(t.token),
     index('push_tokens_user_idx').on(t.userId),
+    index('push_tokens_family_idx').on(t.sessionFamilyId),
   ],
 );
 

@@ -19,9 +19,11 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RidesModule } from './rides/rides.module';
 import { SafetyModule } from './safety/safety.module';
+import { AppLinksController } from './health/app-links.controller';
 import { HealthController } from './health/health.controller';
 import { PlacesController } from './places/places.controller';
 import { MaintenanceModule } from './maintenance/maintenance.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { REDIS, RedisModule } from './redis/redis.module';
 import { UsersController } from './users/users.controller';
 
@@ -74,6 +76,7 @@ const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     DatabaseModule,
     RedisModule,
     AuditModule,
+    NotificationsModule,
     AuthModule,
     IntegrationsModule,
     DriversModule,
@@ -83,7 +86,7 @@ const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     AdminModule,
     MaintenanceModule,
   ],
-  controllers: [HealthController, UsersController, PlacesController],
+  controllers: [HealthController, AppLinksController, UsersController, PlacesController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

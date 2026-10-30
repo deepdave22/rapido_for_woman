@@ -13,6 +13,7 @@ import {
   driverProfiles,
   otpChallenges,
   passengerProfiles,
+  pushTokens,
   sessions,
   userRoles,
   users,
@@ -334,6 +335,10 @@ export class AuthService {
       )
       .returning({ id: sessions.id });
     if (rows.length) {
+      // The device must stop receiving this account's pushes once signed out.
+      await this.db
+        .delete(pushTokens)
+        .where(and(eq(pushTokens.userId, userId), eq(pushTokens.sessionFamilyId, familyId)));
       await this.audit.record({
         actorType: 'USER',
         actorId: userId,

@@ -28,6 +28,10 @@ export const PAYMENT_PROVIDERS = ['sandbox', 'razorpay'] as const;
 export type PaymentProviderName = (typeof PAYMENT_PROVIDERS)[number];
 export type StorageProvider = (typeof STORAGE_PROVIDERS)[number];
 
+/** `memory` keeps pushes in memory for automated tests and is refused elsewhere. */
+export const PUSH_PROVIDERS = ['none', 'expo', 'memory'] as const;
+export type PushProviderName = (typeof PUSH_PROVIDERS)[number];
+
 const toInt = ({ value }: { value: unknown }) =>
   value === undefined || value === '' ? undefined : Number(value);
 
@@ -230,6 +234,30 @@ export class Env {
   @Max(3650)
   RETENTION_LOCATION_DAYS = 90;
 
+  /** `none` records pushes as SKIPPED; `expo` sends through the Expo push service. */
+  @IsIn(PUSH_PROVIDERS)
+  PUSH_PROVIDER: PushProviderName = 'none';
+
+  /** Optional Expo access token; required once "enhanced push security" is on for the project. */
+  @IsOptional()
+  @IsString()
+  EXPO_ACCESS_TOKEN?: string;
+
+  /**
+   * App links (Android) and universal links (iOS). The API serves
+   * /.well-known/assetlinks.json and apple-app-site-association from these,
+   * so the link host must route /.well-known/ to the API.
+   * Comma-separated SHA-256 signing-certificate fingerprints (Play App Signing key and upload key).
+   */
+  @IsOptional()
+  @Matches(/^([0-9A-F]{2}(:[0-9A-F]{2}){31})(,[0-9A-F]{2}(:[0-9A-F]{2}){31})*$/)
+  ANDROID_APP_LINK_SHA256?: string;
+
+  /** Apple Developer Team ID, e.g. ABCDE12345. */
+  @IsOptional()
+  @Matches(/^[A-Z0-9]{10}$/)
+  IOS_TEAM_ID?: string;
+
   get dispatchRadii(): number[] {
     return this.DISPATCH_RADII_METERS.split(',').map(Number);
   }
@@ -282,6 +310,9 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   }
   if (env.OTP_PROVIDER === 'memory' && env.NODE_ENV !== 'test') {
     throw new Error('OTP_PROVIDER=memory is for automated tests only');
+  }
+  if (env.PUSH_PROVIDER === 'memory' && env.NODE_ENV !== 'test') {
+    throw new Error('PUSH_PROVIDER=memory is for automated tests only');
   }
   return env;
 }

@@ -33,4 +33,20 @@ describe('validateEnv', () => {
       'memory',
     );
   });
+
+  it('allows the in-memory push sender only in tests', () => {
+    expect(() => validateEnv({ ...base, PUSH_PROVIDER: 'memory' })).toThrow(/automated tests only/);
+    expect(validateEnv({ ...base, PUSH_PROVIDER: 'expo' }).PUSH_PROVIDER).toBe('expo');
+  });
+
+  it('validates app-link signing details', () => {
+    const fp = Array.from({ length: 32 }, () => 'AB').join(':');
+    expect(
+      validateEnv({ ...base, ANDROID_APP_LINK_SHA256: `${fp},${fp}` }).ANDROID_APP_LINK_SHA256,
+    ).toBe(`${fp},${fp}`);
+    expect(() => validateEnv({ ...base, ANDROID_APP_LINK_SHA256: 'AB:CD' })).toThrow(
+      /ANDROID_APP_LINK_SHA256/,
+    );
+    expect(() => validateEnv({ ...base, IOS_TEAM_ID: 'short' })).toThrow(/IOS_TEAM_ID/);
+  });
 });

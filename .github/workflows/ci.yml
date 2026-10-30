@@ -80,14 +80,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build -w @saheli/domain -w @saheli/api-client
-      - name: Bundle passenger app (Android)
+      - name: Bundle passenger app (Android and iOS)
         working-directory: apps/passenger
-        run: npx expo export --platform android --output-dir /tmp/passenger
+        run: npx expo export --platform android --platform ios --output-dir /tmp/passenger
         env:
           EXPO_PUBLIC_API_URL: https://api.example.invalid
-      - name: Bundle driver app (Android)
+      - name: Bundle driver app (Android and iOS)
         working-directory: apps/driver
-        run: npx expo export --platform android --output-dir /tmp/driver
+        run: npx expo export --platform android --platform ios --output-dir /tmp/driver
         env:
           EXPO_PUBLIC_API_URL: https://api.example.invalid
 

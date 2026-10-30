@@ -28,37 +28,43 @@ professional advice before a pilot.
 
 ## External services and credentials
 
-| Service                                                                         | Purpose                               | Status                                                                                                                                  |
-| ------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| SMS / OTP (e.g. MSG91, Twilio Verify, Gupshup)                                  | Login codes                           | **Not integrated.** `OTP_PROVIDER=msg91` fails startup on purpose. Requires DLT registration for Indian SMS (entity, header, template). |
-| Maps & routing (Google Maps Platform, Ola Maps, or MapmyIndia)                  | Geocoding, autocomplete, routes, ETAs | Not integrated (Phase 3). Needs billing, API keys, and a licence review for storing results.                                            |
-| Payment gateway (e.g. Razorpay)                                                 | UPI/card collection, refunds, payouts | Not integrated (Phase 4). Needs merchant KYC, webhook secret, and a decision on a payouts product.                                      |
-| Push (Firebase Cloud Messaging + APNs)                                          | Ride and safety notifications         | Not integrated. Needs a Firebase project and an Apple developer account.                                                                |
-| Identity / document verification (e.g. DigiLocker-based, licence/RC check APIs) | Driver verification                   | Not integrated. Provider choice depends on L3 and L9.                                                                                   |
-| Object storage (S3-compatible, private bucket)                                  | Driver documents                      | Not integrated.                                                                                                                         |
-| Hosting (managed Postgres with PostGIS, managed Redis, container platform)      | Staging and production                | Not provisioned. An Indian region is preferred for latency and data-localisation questions (L8).                                        |
-| Error tracking (e.g. Sentry)                                                    | Monitoring                            | Not integrated.                                                                                                                         |
-| Apple App Store and Google Play developer accounts                              | Distribution                          | Not created.                                                                                                                            |
+| Service                                                                         | Purpose                               | Status                                                                                                                                         |
+| ------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| SMS / OTP (e.g. MSG91, Twilio Verify, Gupshup)                                  | Login codes                           | **Not integrated.** `OTP_PROVIDER=msg91` fails startup on purpose. Requires DLT registration for Indian SMS (entity, header, template).        |
+| Maps & routing (Google Maps Platform, Ola Maps, or MapmyIndia)                  | Geocoding, autocomplete, routes, ETAs | Not integrated (Phase 3). Needs billing, API keys, and a licence review for storing results.                                                   |
+| Payment gateway (e.g. Razorpay)                                                 | UPI/card collection, refunds, payouts | Not integrated (Phase 4). Needs merchant KYC, webhook secret, and a decision on a payouts product.                                             |
+| Push (Expo push service, relaying to FCM and APNs)                              | Ride notifications                    | **Code integrated** (`PUSH_PROVIDER=expo`, tested with a fake sender). Needs a Firebase project, FCM key and Apple account: MOBILE_RELEASE.md. |
+| Identity / document verification (e.g. DigiLocker-based, licence/RC check APIs) | Driver verification                   | Not integrated. Provider choice depends on L3 and L9.                                                                                          |
+| Object storage (S3-compatible, private bucket)                                  | Driver documents                      | Not integrated.                                                                                                                                |
+| Hosting (managed Postgres with PostGIS, managed Redis, container platform)      | Staging and production                | Not provisioned. An Indian region is preferred for latency and data-localisation questions (L8).                                               |
+| Error tracking (e.g. Sentry)                                                    | Monitoring                            | Not integrated.                                                                                                                                |
+| Expo (EAS), Apple App Store and Google Play developer accounts                  | Builds and distribution               | Not created. Everything else for store builds is configured: MOBILE_RELEASE.md.                                                                |
 
 ## Known limitations (current code)
 
-- **Mobile apps are not yet tested on devices.** They typecheck and Metro bundles them
-  for Android in CI. Running them needs a development build (ADR-012).
-- Driver location is shared only while the app is in the foreground. Background location
-  (expo-task-manager plus Play/App Store background-location review) is required before pilot.
+- **Mobile apps are not yet tested on devices, and no store build exists yet.** They
+  typecheck, pass `expo-doctor`, and bundle for Android and iOS in CI. Native builds need an
+  Expo account (MOBILE_RELEASE.md).
+- Driver background location is implemented (foreground service with a visible
+  notification, Play's prominent disclosure first) but untested on devices. It still needs
+  Play's location and foreground-service declarations and App Review.
+- App Store and Play reviewers cannot sign in: login is SMS OTP to an Indian number. A
+  reviewer access method must be chosen and built (MOBILE_RELEASE.md, "Reviewer access").
+- Push "SENT" means the Expo push service accepted the message; delivery receipts are not
+  polled yet.
 - Map tiles on Android need `GOOGLE_MAPS_ANDROID_KEY`. Real routing and place search need
   `MAPS_PROVIDER=google`. The Google adapters are written to the documented APIs but have
   not been called with a live key.
 - The S3 storage adapter is not written. `STORAGE_PROVIDER=s3` fails at startup by design.
 - In-app online checkout is not built: the API creates gateway orders and processes signed
   webhooks, but the app cannot yet open Razorpay checkout. Cash rides work end to end.
-- No SMS or push provider: SOS cannot actually message trusted contacts, and the app says so.
+- No SMS provider: SOS cannot actually message trusted contacts, and the app says so.
   Integrate a DLT-registered SMS provider before pilot (also needed for OTP).
 - Refunds are absorbed by platform revenue; cancellation fees are treated as tax-inclusive.
   Both need finance and tax review (L7).
 - The HTTP throttler keeps counters in memory per instance and is disabled in
   `NODE_ENV=test`. The OTP limits stored in the database still apply everywhere.
-- Account deletion and data export are not implemented.
+- Account deletion is available in both apps. Data export exists in the API (`GET /v1/me/export`) but has no screen in the apps yet.
 - Admin dashboard has no QR code for TOTP enrolment or live map; staff must keep the incident
   queue open (it polls every 10 s). A paging/alerting integration for new SOS is needed before pilot.
 - TOTP codes can be replayed within their 30-second window (no used-code tracking yet).

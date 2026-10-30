@@ -1,5 +1,12 @@
-import { AuthProvider, colors, Loading, PhoneSignIn, useAuth } from '@saheli/mobile-core';
-import { Stack } from 'expo-router';
+import {
+  AuthProvider,
+  colors,
+  Loading,
+  PhoneSignIn,
+  useAuth,
+  usePushNotifications,
+} from '@saheli/mobile-core';
+import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { API_URL } from '../src/config';
@@ -12,6 +19,12 @@ function Gate() {
     return <PhoneSignIn appName="Saheli" tagline="Rides with verified women drivers." />;
   }
   if (!state.me.passenger?.termsAccepted) return <TermsScreen />;
+  return <SignedIn />;
+}
+
+function SignedIn() {
+  const { api } = useAuth();
+  usePushNotifications(api, (path) => router.push(path as never));
   return (
     <Stack
       screenOptions={{

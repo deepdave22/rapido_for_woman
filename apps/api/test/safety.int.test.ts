@@ -103,7 +103,7 @@ describe('SOS', () => {
     expect(res.body.message).not.toMatch(/responding|police|on the way/i);
     expect(res.body.emergencyNumber).toBe('112');
 
-    const [sms] = await ctx.db.select().from(notifications);
+    const [sms] = await ctx.db.select().from(notifications).where(eq(notifications.channel, 'SMS'));
     expect(sms).toMatchObject({
       channel: 'SMS',
       status: 'SKIPPED',
