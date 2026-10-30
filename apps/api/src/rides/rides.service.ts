@@ -18,6 +18,7 @@ import {
   passengerProfiles,
   promotions,
   rides,
+  users,
 } from '../database/schema';
 import { DispatchService } from '../dispatch/dispatch.service';
 import { PricingService, toCancellationPolicy, toDomainRule } from '../pricing/pricing.service';
@@ -56,8 +57,10 @@ export class RidesService {
       .select({
         terms: passengerProfiles.termsVersionAccepted,
         eligibility: passengerProfiles.eligibilityStatus,
+        review: users.isReviewAccount,
       })
       .from(passengerProfiles)
+      .innerJoin(users, eq(users.id, passengerProfiles.userId))
       .where(eq(passengerProfiles.userId, passengerId));
     if (!profile)
       throw new AppError(403, 'NOT_A_PASSENGER', 'Sign in with the passenger app to book');
@@ -73,6 +76,13 @@ export class RidesService {
     }
     if (profile.eligibility === 'INELIGIBLE') {
       throw new AppError(403, 'NOT_ELIGIBLE', 'This account cannot book rides');
+    }
+    if (profile.review && paymentMethod !== 'CASH') {
+      throw new AppError(
+        422,
+        'REVIEW_ACCOUNT_CASH_ONLY',
+        'Review accounts can only book cash rides',
+      );
     }
 
     let ride: RideRow;

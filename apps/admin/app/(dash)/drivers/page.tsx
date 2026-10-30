@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Badge, ErrorNote, PageTitle, Table } from '@/components/ui';
+import { Badge, ErrorNote, PageTitle, ReviewTag, Table } from '@/components/ui';
 import { useAdmin, when } from '@/lib/client';
 
 interface DriverRow {
@@ -13,6 +13,7 @@ interface DriverRow {
   vehicle: string | null;
   category: string | null;
   online: boolean | null;
+  reviewAccount: boolean;
   rating: number | null;
 }
 
@@ -51,7 +52,15 @@ export default function Drivers() {
         rows={data}
         rowHref={(d) => `/drivers/${d.id}`}
         columns={[
-          { header: 'Name', render: (d) => d.name ?? '(no name)' },
+          {
+            header: 'Name',
+            render: (d) => (
+              <>
+                {d.name ?? '(no name)'}
+                <ReviewTag show={d.reviewAccount} />
+              </>
+            ),
+          },
           { header: 'Phone', render: (d) => d.phone },
           { header: 'Status', render: (d) => <Badge value={d.status} /> },
           { header: 'Vehicle', render: (d) => (d.vehicle ? `${d.vehicle} · ${d.category}` : '—') },

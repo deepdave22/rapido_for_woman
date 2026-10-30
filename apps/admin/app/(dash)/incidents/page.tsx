@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Badge, ErrorNote, PageTitle, Table } from '@/components/ui';
+import { Badge, ErrorNote, PageTitle, ReviewTag, Table } from '@/components/ui';
 import { useAdmin, when } from '@/lib/client';
 
 interface IncidentRow {
@@ -11,6 +11,7 @@ interface IncidentRow {
   status: string;
   rideId: string | null;
   reporterRole: string;
+  reviewAccount: boolean | null;
   createdAt: string;
   acknowledgedAt: string | null;
 }
@@ -59,7 +60,15 @@ export default function Incidents() {
           },
           { header: 'Severity', render: (i) => <Badge value={i.severity} /> },
           { header: 'Status', render: (i) => <Badge value={i.status} /> },
-          { header: 'Reported by', render: (i) => i.reporterRole.toLowerCase() },
+          {
+            header: 'Reported by',
+            render: (i) => (
+              <>
+                {i.reporterRole.toLowerCase()}
+                <ReviewTag show={i.reviewAccount} />
+              </>
+            ),
+          },
           { header: 'Raised', render: (i) => when(i.createdAt) },
           { header: 'Acknowledged', render: (i) => when(i.acknowledgedAt) },
         ]}

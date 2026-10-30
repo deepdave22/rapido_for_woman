@@ -37,7 +37,8 @@ Required in every deployed environment: `DATABASE_URL`, `REDIS_URL`, `JWT_ACCESS
 `GOOGLE_MAPS_API_KEY`, `STORAGE_PROVIDER=s3`, `PAYMENT_PROVIDER=razorpay` with its three keys,
 `SHARE_LINK_BASE_URL` (https), `CORS_ORIGINS`, `TRUST_PROXY_HOPS` (match the load balancer),
 `PUSH_PROVIDER=expo` (plus `EXPO_ACCESS_TOKEN` if the Expo project enforces it).
-Optional: `ANDROID_APP_LINK_SHA256` and `IOS_TEAM_ID` to serve the app-link verification files.
+Optional: `ANDROID_APP_LINK_SHA256` and `IOS_TEAM_ID` to serve the app-link verification files;
+`REVIEW_LOGIN_PHONES` and `REVIEW_LOGIN_CODE` for app-store review accounts (MOBILE_RELEASE.md).
 
 The mobile apps are released separately from the API, through the stores: see MOBILE_RELEASE.md.
 Keep the API backwards compatible with the app versions still installed on phones.

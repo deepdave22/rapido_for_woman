@@ -14,6 +14,7 @@
     "db:seed": "tsx src/database/seed.ts",
     "postdb:generate": "node scripts/unquote-postgis-types.mjs",
     "admin:create": "tsx src/admin/create-staff.ts",
+    "review:accounts": "tsx src/admin/create-review-accounts.ts",
     "test:perf": "vitest run --project perf"
   },
   "dependencies": {

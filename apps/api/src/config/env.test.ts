@@ -49,4 +49,25 @@ describe('validateEnv', () => {
     );
     expect(() => validateEnv({ ...base, IOS_TEAM_ID: 'short' })).toThrow(/IOS_TEAM_ID/);
   });
+
+  it('configures review sign-in only with both numbers and a random-looking code', () => {
+    const phones = '+919876543210,+918765432109';
+    const env = validateEnv({ ...base, REVIEW_LOGIN_PHONES: phones, REVIEW_LOGIN_CODE: '583920' });
+    expect([...env.reviewLoginPhones]).toEqual(phones.split(','));
+    expect(validateEnv(base).reviewLoginPhones.size).toBe(0);
+    expect(() => validateEnv({ ...base, REVIEW_LOGIN_PHONES: phones })).toThrow(/set together/);
+    expect(() => validateEnv({ ...base, REVIEW_LOGIN_CODE: '583920' })).toThrow(/set together/);
+    expect(() =>
+      validateEnv({ ...base, REVIEW_LOGIN_PHONES: '9876543210', REVIEW_LOGIN_CODE: '583920' }),
+    ).toThrow(/REVIEW_LOGIN_PHONES/);
+  });
+
+  it.each(['000000', '123456', '987654', '121212', '583583'])(
+    'rejects the guessable review code %s',
+    (code) => {
+      expect(() =>
+        validateEnv({ ...base, REVIEW_LOGIN_PHONES: '+919876543210', REVIEW_LOGIN_CODE: code }),
+      ).toThrow(/too easy to guess/);
+    },
+  );
 });

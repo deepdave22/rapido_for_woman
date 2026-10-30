@@ -258,9 +258,38 @@ export class Env {
   @Matches(/^[A-Z0-9]{10}$/)
   IOS_TEAM_ID?: string;
 
+  /**
+   * App-store review sign-in (docs/MOBILE_RELEASE.md). Comma-separated +91 numbers the
+   * company controls. The fixed code works only for these numbers AND only if the
+   * account was provisioned as a review account; anyone else gets a normal SMS code.
+   */
+  @IsOptional()
+  @Matches(/^\+91[6-9]\d{9}(,\+91[6-9]\d{9}){0,9}$/, {
+    message: 'REVIEW_LOGIN_PHONES must be up to 10 comma-separated +91 mobile numbers',
+  })
+  REVIEW_LOGIN_PHONES?: string;
+
+  /** The fixed 6-digit code for those numbers. Random, kept in the secret manager. */
+  @IsOptional()
+  @Matches(/^\d{6}$/, { message: 'REVIEW_LOGIN_CODE must be 6 digits' })
+  REVIEW_LOGIN_CODE?: string;
+
+  get reviewLoginPhones(): Set<string> {
+    if (!this.REVIEW_LOGIN_PHONES || !this.REVIEW_LOGIN_CODE) return new Set();
+    return new Set(this.REVIEW_LOGIN_PHONES.split(','));
+  }
+
   get dispatchRadii(): number[] {
     return this.DISPATCH_RADII_METERS.split(',').map(Number);
   }
+}
+
+/** Repeated digits, runs like 123456 / 987654, or a repeated pair or triple. */
+function isGuessableCode(code: string): boolean {
+  const digits = [...code].map(Number);
+  const steps = new Set(digits.slice(1).map((d, i) => d - digits[i]!));
+  const repeats = code === code.slice(0, 2).repeat(3) || code === code.slice(0, 3).repeat(2);
+  return repeats || (steps.size === 1 && [0, 1, -1].includes([...steps][0]!));
 }
 
 /**
@@ -310,6 +339,12 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   }
   if (env.OTP_PROVIDER === 'memory' && env.NODE_ENV !== 'test') {
     throw new Error('OTP_PROVIDER=memory is for automated tests only');
+  }
+  if (Boolean(env.REVIEW_LOGIN_PHONES) !== Boolean(env.REVIEW_LOGIN_CODE)) {
+    throw new Error('REVIEW_LOGIN_PHONES and REVIEW_LOGIN_CODE must be set together');
+  }
+  if (env.REVIEW_LOGIN_CODE && isGuessableCode(env.REVIEW_LOGIN_CODE)) {
+    throw new Error('REVIEW_LOGIN_CODE is too easy to guess; generate a random one');
   }
   if (env.PUSH_PROVIDER === 'memory' && env.NODE_ENV !== 'test') {
     throw new Error('PUSH_PROVIDER=memory is for automated tests only');

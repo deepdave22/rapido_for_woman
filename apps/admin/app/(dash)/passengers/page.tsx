@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Badge, ErrorNote, PageTitle, Table } from '@/components/ui';
+import { Badge, ErrorNote, PageTitle, ReviewTag, Table } from '@/components/ui';
 import { useAdmin, when } from '@/lib/client';
 
 interface PassengerRow {
@@ -10,6 +10,7 @@ interface PassengerRow {
   phone: string;
   status: string;
   eligibility: string;
+  reviewAccount: boolean;
   createdAt: string;
 }
 
@@ -33,7 +34,15 @@ export default function Passengers() {
         rows={data}
         rowHref={(p) => `/passengers/${p.id}`}
         columns={[
-          { header: 'Name', render: (p) => p.name ?? '(no name)' },
+          {
+            header: 'Name',
+            render: (p) => (
+              <>
+                {p.name ?? '(no name)'}
+                <ReviewTag show={p.reviewAccount} />
+              </>
+            ),
+          },
           { header: 'Phone', render: (p) => p.phone },
           { header: 'Account', render: (p) => <Badge value={p.status} /> },
           { header: 'Eligibility', render: (p) => <Badge value={p.eligibility} /> },

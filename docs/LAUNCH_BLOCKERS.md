@@ -48,8 +48,8 @@ professional advice before a pilot.
 - Driver background location is implemented (foreground service with a visible
   notification, Play's prominent disclosure first) but untested on devices. It still needs
   Play's location and foreground-service declarations and App Review.
-- App Store and Play reviewers cannot sign in: login is SMS OTP to an Indian number. A
-  reviewer access method must be chosen and built (MOBILE_RELEASE.md, "Reviewer access").
+- Reviewers sign in with sandboxed review accounts (MOBILE_RELEASE.md, "Reviewer access").
+  Outside Bengaluru they cannot complete a full ride, so a demo video is needed.
 - Push "SENT" means the Expo push service accepted the message; delivery receipts are not
   polled yet.
 - Map tiles on Android need `GOOGLE_MAPS_ANDROID_KEY`. Real routing and place search need

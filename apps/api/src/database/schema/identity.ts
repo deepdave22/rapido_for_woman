@@ -38,6 +38,11 @@ export const users = pgTable(
     profilePhotoKey: text(),
     preferredLanguage: text().notNull().default('en-IN'),
     suspendedReason: text(),
+    /**
+     * App-store reviewer account (docs/MOBILE_RELEASE.md). Only matched with other
+     * review accounts, cash only, and the only accounts the review sign-in code works for.
+     */
+    isReviewAccount: boolean().notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: timestamp({ withTimezone: true }),

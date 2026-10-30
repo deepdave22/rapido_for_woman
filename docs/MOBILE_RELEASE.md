@@ -158,12 +158,8 @@ npx eas-cli@27.2.0 build --platform all --profile production       # both
 - _External testing_: up to 10,000 testers by email or public link; the first build of each
   version goes through Beta App Review. Fill in "Test information": what to test, a contact,
   and **sign-in details for the reviewer** (see the next point).
-- **Reviewer access is an open decision.** Sign-in is by SMS OTP to an Indian number, so
-  Apple's and Google's reviewers cannot sign in unaided. Options: a dedicated review phone
-  number whose SMS the team relays during review, or a single allow-listed review number
-  with a fixed code on a review-only environment. Neither is built; choose one with the
-  security reviewer, because a fixed code in production is a backdoor if done carelessly.
-  The driver app also needs an **approved** review driver account in that environment.
+- **Reviewer sign-in**: see [Reviewer access](#reviewer-access) below. Use the same
+  accounts for Beta App Review and App Review.
 
 **Google Play**
 
@@ -172,10 +168,68 @@ npx eas-cli@27.2.0 build --platform all --profile production       # both
   November 2023 must keep 12+ testers in a closed test for 14 days before applying for production.
 - Check the _pre-launch report_ (automatic crawls on real devices) for crashes and
   accessibility issues on each upload.
-- App content → **App access**: give the same reviewer sign-in instructions as for Apple.
+- App content → **App access**: "All or some functionality is restricted", then add the
+  same reviewer sign-in instructions as for Apple.
 
 Test both apps on low-end Android phones common among drivers (2-3 GB RAM, Android 10-14),
 and the driver app with the screen off and the app swiped away while online.
+
+## Reviewer access
+
+Sign-in is by SMS code to an Indian mobile number, which Apple's and Google's reviewers
+cannot receive. The API therefore supports **review accounts**: a fixed 6-digit code that
+works only for allow-listed numbers that were provisioned as review accounts.
+
+**Safeguards (all enforced in code and covered by tests):**
+
+- Two keys: the number must be in `REVIEW_LOGIN_PHONES` **and** its account must have been
+  created by the provisioning script (`users.is_review_account`). If a real person's number is
+  listed by mistake, they still get a normal SMS code; the script refuses to convert an
+  existing real account.
+- The response to a code request is identical for review and normal numbers, and the usual
+  limits apply (5 attempts per code, 5 codes per number per hour, per-IP limits), so the
+  fixed code cannot be brute-forced faster than any other code.
+- **Isolation:** review passengers are only matched with review drivers and vice versa, so a
+  reviewer's booking never reaches a real driver, and quotes only count review drivers as
+  "nearby". Review accounts can only book cash rides and cannot start online payments.
+- Every issued review code is audit-logged (`auth.review_code_issued`), and the admin
+  dashboard marks review accounts with a "review account" badge on drivers, passengers and
+  safety incidents, so the safety desk knows an SOS from a reviewer is a test.
+- Turning it off is one change: unset `REVIEW_LOGIN_PHONES` and `REVIEW_LOGIN_CODE`.
+
+**Setting it up (owner, before each submission):**
+
+1. Get two mobile numbers the company controls (company SIMs) that have **never** signed up.
+   Never use invented numbers: they may belong to someone.
+2. Generate a random code, e.g. `node -e "console.log(require('crypto').randomInt(1e6).toString().padStart(6,'0'))"`
+   (codes like `123456` or `111111` are refused at startup).
+3. Set on the production API, in the secret manager:
+   `REVIEW_LOGIN_PHONES=+91XXXXXXXXXX,+91YYYYYYYYYY` and `REVIEW_LOGIN_CODE=<code>`.
+4. Provision the accounts (re-run after a reviewer deletes one; it is safe to repeat):
+   ```bash
+   npm run review:accounts -w @saheli/api -- --passenger +91XXXXXXXXXX --driver +91YYYYYYYYYY --category AUTO
+   ```
+   The driver is approved with placeholder checks and documents marked "review account".
+5. Sign in on a test phone with each number and the code to confirm it works.
+6. After approval, unset both variables (and re-set them for the next submission), or keep
+   them if you prefer; the accounts stay sandboxed either way.
+
+**Notes for the reviewer** (paste into App Store Connect → App Review Information → Notes,
+and Play Console → App access), adjusting the numbers:
+
+> Sign-in uses a one-time SMS code to an Indian mobile number. Please use these review
+> accounts instead; no SMS is sent to them.
+> Passenger app: mobile number 9XXXXXXXXX, code NNNNNN.
+> Driver app: mobile number 9YYYYYYYYY, code NNNNNN.
+> The service operates only in Bengaluru, India. Outside India, choose pickup and drop by
+> searching for places (e.g. "MG Road" and "Koramangala") instead of using your location.
+> Review accounts are only matched with each other and cannot make payments. A demo video
+> of a full ride in Bengaluru is attached / at <link>.
+> The SOS button alerts our safety team; for review accounts it is marked as a test.
+
+Because rides are matched by location, a reviewer outside Bengaluru cannot complete a full
+ride. Record a short screen video of a complete ride with the two review accounts in
+Bengaluru and attach it (Apple accepts demo videos for location-dependent features).
 
 ## Store listings
 
@@ -258,7 +312,8 @@ The passenger app does not request background location (it is blocked in the man
 4. Accounts: Expo, Play Console, Apple Developer, Firebase (owner).
 5. One-time setup above; build `preview`, QA on real devices; fix issues.
 6. Build `production` for both platforms; submit to TestFlight and Play internal testing.
-7. Reviewer access, store listings, screenshots, Data safety / App Privacy, location declarations.
+7. Review accounts and reviewer notes, store listings, screenshots, Data safety / App Privacy,
+   location declarations.
 8. Closed/external testing with real pilot users; then submit for review and staged rollout.
 
 ## What has been verified

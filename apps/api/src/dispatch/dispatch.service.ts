@@ -153,6 +153,8 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
          AND v.status = 'ACTIVE'
          AND v.category_code = ${ride.categoryCode}
          AND dl.driver_id <> ${ride.passengerId}
+         -- Review accounts only ever meet each other (docs/MOBILE_RELEASE.md).
+         AND u.is_review_account = (SELECT is_review_account FROM users WHERE id = ${ride.passengerId})
          AND dl.recorded_at > now() - make_interval(secs => ${this.env.LOCATION_MAX_AGE_SECONDS})
          AND ST_DWithin(dl.location, ${pickup}, ${radiusMeters})
          AND NOT EXISTS (

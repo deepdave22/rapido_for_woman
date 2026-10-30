@@ -50,6 +50,13 @@
       "when": 1793336717058,
       "tag": "0006_push_token_drop_session_row",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793342738406,
+      "tag": "0007_review_accounts",
+      "breakpoints": true
     }
   ]
 }

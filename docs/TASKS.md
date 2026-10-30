@@ -102,6 +102,7 @@ covered by tests that were actually run.
 - [x] In-app account deletion (store requirement); deep links (schemes; optional App/Universal Links)
 - [x] EAS Build and Submit profiles; release builds refuse non-https APIs — docs/MOBILE_RELEASE.md
 - [ ] (owner) Expo, Google Play and Apple accounts; first `.aab` / `.ipa` builds and submission
-- [ ] Reviewer sign-in method; store listings, screenshots, Data safety / App Privacy forms
+- [x] Reviewer sign-in: sandboxed review accounts with a fixed code (two keys, isolated matching, cash only)
+- [ ] (owner) Review numbers and code; store listings, screenshots, Data safety / App Privacy forms
 - [ ] Device testing on low-end Android and iPhone; TestFlight and Play closed testing
 - [ ] Data export screen in the apps; push delivery receipts

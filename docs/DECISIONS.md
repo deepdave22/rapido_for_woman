@@ -164,3 +164,22 @@ token format and one HTTP call, and needs no Firebase Admin SDK on the server.
   revoked or expires, so a shared or resold phone does not receive someone else's ride updates.
 - Push is a nudge on top of realtime events. It never blocks or fails the ride flow, and
   lock-screen text carries no names, numbers or addresses.
+
+## ADR-020 Sandboxed review accounts for app-store reviewers
+
+**Decision:** A fixed 6-digit sign-in code (`REVIEW_LOGIN_CODE`) that works only for numbers in
+`REVIEW_LOGIN_PHONES` whose accounts were created as review accounts by
+`npm run review:accounts`. Review accounts are matched only with each other, are cash-only,
+and are flagged in the admin dashboard.
+**Why:** Store reviewers cannot receive Indian SMS, and the submitted binary talks to the
+production API, so a separate review environment would not be what they test. Relaying SMS
+by hand during review is slow and unreliable.
+**Consequences:**
+
+- A fixed code is a standing credential. It is bounded by two keys (environment and database
+  flag), the normal OTP rate limits, audit logging and isolation, so a leaked code exposes only
+  sandboxed test accounts, never a real person's account or a real driver.
+- Review drivers have placeholder verifications and documents; they are only ever offered rides
+  from review passengers.
+- A full ride needs both review accounts near each other in a service zone, so reviewers abroad
+  get a demo video instead.

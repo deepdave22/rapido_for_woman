@@ -29,6 +29,15 @@ export function Badge({ value }: { value: string }) {
   );
 }
 
+/** App-store reviewer accounts (docs/MOBILE_RELEASE.md): sandboxed test users, not real people. */
+export function ReviewTag({ show }: { show: boolean | null | undefined }) {
+  return show ? (
+    <span className="badge badge-review" title="App-store reviewer test account">
+      review account
+    </span>
+  ) : null;
+}
+
 export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
   return (
     <div className="card stat">

@@ -3,7 +3,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service';
 import { AppError } from '../common/errors';
 import { DB, Database, Tx } from '../database/database.module';
-import { paymentWebhookEvents, payments, refunds, rides } from '../database/schema';
+import { paymentWebhookEvents, payments, refunds, rides, users } from '../database/schema';
 import { DispatchService } from '../dispatch/dispatch.service';
 import { PricingService } from '../pricing/pricing.service';
 import { LedgerService } from './ledger.service';
@@ -43,6 +43,13 @@ export class PaymentsService {
    */
   async startOnlinePayment(passengerId: string, rideId: string) {
     const ride = await this.loadForPassenger(passengerId, rideId);
+    const [payer] = await this.db
+      .select({ review: users.isReviewAccount })
+      .from(users)
+      .where(eq(users.id, passengerId));
+    if (payer?.review) {
+      throw new AppError(422, 'REVIEW_ACCOUNT_NO_PAYMENTS', 'Review accounts cannot make payments');
+    }
     const due = amountDue(ride);
     if (!due) throw new AppError(409, 'NOTHING_TO_PAY', 'There is nothing to pay for this ride');
     if (ride.paymentStatus === 'PAID')

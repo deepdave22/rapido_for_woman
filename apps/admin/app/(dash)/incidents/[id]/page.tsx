@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { use } from 'react';
-import { ActionButton, Badge, ErrorNote, PageTitle } from '@/components/ui';
+import { ActionButton, Badge, ErrorNote, PageTitle, ReviewTag } from '@/components/ui';
 import { useAdmin, when } from '@/lib/client';
 
 interface IncidentDetail {
@@ -13,7 +13,7 @@ interface IncidentDetail {
   rideId: string | null;
   description: string | null;
   location: { lat: number; lng: number } | null;
-  reporter: { id: string; name: string | null; phone: string };
+  reporter: { id: string; name: string | null; phone: string; reviewAccount: boolean };
   reporterRole: string;
   createdAt: string;
   acknowledgedAt: string | null;
@@ -100,6 +100,7 @@ export default function IncidentPage({ params }: { params: Promise<{ id: string 
             <dt>Reporter</dt>
             <dd>
               {i.reporter.name ?? '—'} ({i.reporterRole.toLowerCase()})
+              <ReviewTag show={i.reporter.reviewAccount} />
             </dd>
             <dt>Call back</dt>
             <dd>

@@ -14,6 +14,9 @@
 - [x] Mobile tokens in the OS keystore (expo-secure-store); admin tokens in httpOnly, SameSite=strict cookies, never visible to browser JavaScript
 - [ ] Staff SSO / hardware keys (consider for scale)
 
+- [x] App-store review accounts: a fixed code for allow-listed, provisioned, sandboxed accounts only
+      (ADR-020). Normal OTP limits and audit logging apply; unset the variables to disable.
+
 ## Authorisation
 
 - [x] Global deny-by-default guard; public routes opt out explicitly

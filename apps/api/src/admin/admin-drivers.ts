@@ -288,6 +288,7 @@ export class AdminDriversController {
         id: driverProfiles.userId,
         name: users.fullName,
         phone: users.phoneE164,
+        reviewAccount: users.isReviewAccount,
         status: driverProfiles.status,
         submittedAt: driverProfiles.submittedAt,
         ratingSum: driverProfiles.ratingSum,

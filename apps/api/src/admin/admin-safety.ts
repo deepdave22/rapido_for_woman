@@ -84,6 +84,7 @@ export class AdminSafetyController {
         status: safetyIncidents.status,
         rideId: safetyIncidents.rideId,
         reporterRole: safetyIncidents.reporterRole,
+        reviewAccount: sql<boolean>`(SELECT is_review_account FROM users WHERE id = ${safetyIncidents.reporterUserId})`,
         assignedStaffId: safetyIncidents.assignedStaffId,
         createdAt: safetyIncidents.createdAt,
         acknowledgedAt: safetyIncidents.acknowledgedAt,
@@ -110,7 +111,12 @@ export class AdminSafetyController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     const [row] = await this.db
-      .select({ incident: safetyIncidents, name: users.fullName, phone: users.phoneE164 })
+      .select({
+        incident: safetyIncidents,
+        name: users.fullName,
+        phone: users.phoneE164,
+        reviewAccount: users.isReviewAccount,
+      })
       .from(safetyIncidents)
       .innerJoin(users, eq(users.id, safetyIncidents.reporterUserId))
       .where(eq(safetyIncidents.id, id));
@@ -124,7 +130,12 @@ export class AdminSafetyController {
     });
     return {
       ...row.incident,
-      reporter: { id: row.incident.reporterUserId, name: row.name, phone: row.phone },
+      reporter: {
+        id: row.incident.reporterUserId,
+        name: row.name,
+        phone: row.phone,
+        reviewAccount: row.reviewAccount,
+      },
       timeline: await this.db
         .select()
         .from(incidentEvents)

@@ -265,6 +265,13 @@ label {
   color: var(--danger);
 }
 
+.badge-review {
+  margin-left: 6px;
+  background: transparent;
+  color: var(--text);
+  border: 1px dashed currentColor;
+}
+
 .badge-approved,
 .badge-completed,
 .badge-paid,

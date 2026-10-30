@@ -42,11 +42,10 @@ export class AuthService {
 
   async requestOtp(rawPhone: string, client: ClientInfo): Promise<RequestOtpResponse> {
     const phone = normalizeIndianMobile(rawPhone);
-    const code = randomDigits(6);
     const now = new Date();
     const hourAgo = new Date(now.getTime() - HOUR_MS);
 
-    const challengeId = await this.db.transaction(async (tx) => {
+    const { challengeId, code, review } = await this.db.transaction(async (tx) => {
       // Serialise sends per phone so concurrent requests cannot bypass the limits.
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${'otp:' + phone}))`);
 
@@ -83,6 +82,12 @@ export class AuthService {
         }
       }
 
+      // App-store reviewers cannot receive Indian SMS. Both keys are required: the number
+      // is allow-listed in the environment AND the account was provisioned as a review
+      // account, so a mistyped number can never take over a real person's account.
+      const review = await this.isReviewSignIn(tx, phone);
+      const code = review ? this.env.REVIEW_LOGIN_CODE! : randomDigits(6);
+
       const [row] = await tx
         .insert(otpChallenges)
         .values({
@@ -93,13 +98,31 @@ export class AuthService {
           requestIp: client.ip ?? null,
         })
         .returning({ id: otpChallenges.id });
-      return row!.id;
+      if (review) {
+        await this.audit.record(
+          {
+            actorType: 'SYSTEM',
+            actorId: null,
+            action: 'auth.review_code_issued',
+            entityType: 'otp_challenge',
+            entityId: row!.id,
+            ip: client.ip,
+            requestId: client.requestId,
+            metadata: {},
+          },
+          tx,
+        );
+      }
+      return { challengeId: row!.id, code, review };
     });
 
-    try {
-      await this.otpSender.send(phone, code);
-    } catch {
-      throw new AppError(503, 'OTP_DELIVERY_FAILED', 'Could not send the code. Please try again');
+    // The response is the same either way, so callers cannot tell a review number apart.
+    if (!review) {
+      try {
+        await this.otpSender.send(phone, code);
+      } catch {
+        throw new AppError(503, 'OTP_DELIVERY_FAILED', 'Could not send the code. Please try again');
+      }
     }
 
     return {
@@ -107,6 +130,15 @@ export class AuthService {
       expiresInSeconds: this.env.OTP_TTL_SECONDS,
       resendAfterSeconds: this.env.OTP_RESEND_COOLDOWN_SECONDS,
     };
+  }
+
+  private async isReviewSignIn(tx: Tx, phone: string): Promise<boolean> {
+    if (!this.env.reviewLoginPhones.has(phone)) return false;
+    const [user] = await tx
+      .select({ review: users.isReviewAccount, status: users.status })
+      .from(users)
+      .where(eq(users.phoneE164, phone));
+    return user?.review === true && user.status === 'ACTIVE';
   }
 
   async verifyOtp(

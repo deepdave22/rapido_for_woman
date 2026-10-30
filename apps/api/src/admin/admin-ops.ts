@@ -291,6 +291,7 @@ export class AdminOpsController {
         id: users.id,
         name: users.fullName,
         phone: users.phoneE164,
+        reviewAccount: users.isReviewAccount,
         status: users.status,
         eligibility: passengerProfiles.eligibilityStatus,
         createdAt: users.createdAt,

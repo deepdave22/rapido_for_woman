@@ -52,7 +52,7 @@ export class QuotesService {
       : null;
 
     const [nearby, rules] = await Promise.all([
-      this.nearbyDrivers(dto.pickup),
+      this.nearbyDrivers(dto.pickup, passengerId),
       this.pricing.currentRulesForZone(zone.id),
     ]);
     const expiresAt = new Date(Date.now() + this.env.QUOTE_TTL_SECONDS * 1000);
@@ -124,8 +124,11 @@ export class QuotesService {
     };
   }
 
-  /** Nearest free online driver per category within 5 km (metres). */
-  private async nearbyDrivers(pickup: { lat: number; lng: number }): Promise<Map<string, number>> {
+  /** Nearest free online driver per category within 5 km (metres), from the same pool dispatch uses. */
+  private async nearbyDrivers(
+    pickup: { lat: number; lng: number },
+    passengerId: string,
+  ): Promise<Map<string, number>> {
     const point = geoPoint(pickup);
     const { rows } = await this.db.execute<{ category_code: string; distance_m: number }>(sql`
       SELECT v.category_code, MIN(ST_Distance(dl.location, ${point}))::int AS distance_m
@@ -133,7 +136,9 @@ export class QuotesService {
         JOIN driver_availability da ON da.driver_id = dl.driver_id
         JOIN driver_profiles dp ON dp.user_id = dl.driver_id
         JOIN vehicles v ON v.id = da.vehicle_id
+        JOIN users u ON u.id = dl.driver_id
        WHERE da.is_online AND da.active_ride_id IS NULL AND dp.status = 'APPROVED' AND v.status = 'ACTIVE'
+         AND u.is_review_account = (SELECT is_review_account FROM users WHERE id = ${passengerId})
          AND dl.recorded_at > now() - make_interval(secs => ${this.env.LOCATION_MAX_AGE_SECONDS})
          AND ST_DWithin(dl.location, ${point}, 5000)
        GROUP BY v.category_code`);
