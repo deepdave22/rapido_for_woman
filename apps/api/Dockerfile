@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build from the repository root:  docker build -f apps/api/Dockerfile .
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 # Every workspace manifest is needed for the lockfile to resolve.
 COPY package.json package-lock.json ./
@@ -22,7 +22,7 @@ RUN npm run build -w @saheli/domain && npm run build -w @saheli/api
 FROM deps AS prod-deps
 RUN npm ci -w @saheli/api -w @saheli/domain --omit=dev --ignore-scripts && npm cache clean --force
 
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=prod-deps /app/node_modules ./node_modules
